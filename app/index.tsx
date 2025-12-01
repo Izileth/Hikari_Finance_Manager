@@ -1,13 +1,18 @@
-import { View, Text } from "react-native";
-import { Link } from "expo-router";
-export default function HomeScreen() {
-    return (
-        <View className="bg-slate-50 flex items-center justify-center w-full h-screen">
-            <Text className="text-black">Home Screen</Text>
-            <Link href="/profile" className="mt-4 px-4 py-2 bg-red-500 rounded">
-                <Text className="text-white">Go to Profile</Text>
-            </Link>
-        </View>
-    );
+import { useAuth } from '../context/AuthContext';
+import { Redirect } from 'expo-router';
+import { View } from 'react-native';
+
+export default function Index() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return <View />;
+  }
+
+  if (!session) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  return <Redirect href="/(tabs)/profile" />;
 }
 
