@@ -129,54 +129,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (name: string, email: string, password: string) => {
     setLoading(true);
     try {
-      // 1. Sign up the user in Supabase Auth
+      // 1. Sign up the user in Supabase Auth (inclui metadados para o trigger usar)
       const response = await fetch(`${supabaseUrl}/auth/v1/signup`, {
         method: 'POST',
         headers: {
           'apikey': supabaseAnonKey,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ 
+          email, 
+          password,
+          options: {
+            data: {
+              name: name,
+              nickname: name,
+            }
+          }
+        }),
       });
       const data = await response.json();
       if (!response.ok || !data.user) {
         throw new Error(data.message || 'Failed to sign up');
       }
 
-      // 2. The user is signed up but not logged in. Log them in to get a token.
+      // 2. O trigger já criou o perfil automaticamente! Agora só fazer login
       const loginResponse = await signIn(email, password);
       if (loginResponse.error) {
-          throw loginResponse.error;
+        throw loginResponse.error;
       }
 
-      // 3. Create the profile in the 'profiles' table
-      const newProfile = { name, email, password: '[protected]' };
-      // We need the token from the login response to authorize this request
-      const sessionDataString = await AsyncStorage.getItem('supabase.session');
-      if (!sessionDataString) {
-        throw new Error("Session not found after login.");
-      }
-      const sessionData = JSON.parse(sessionDataString);
-
-      const profileResponse = await fetch(`${supabaseUrl}/rest/v1/profiles`, {
-          method: 'POST',
-          headers: {
-              'apikey': supabaseAnonKey,
-              'Authorization': `Bearer ${sessionData.access_token}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=minimal',
-          },
-          body: JSON.stringify(newProfile),
-      });
-
-      if (!profileResponse.ok) {
-          const profileError = await profileResponse.json();
-          throw new Error(profileError.message || 'Failed to create profile.');
-      }
-
-      // Fetch the newly created profile to update the context
-      await fetchProfile(email, sessionData.access_token);
-
+      // 3. O perfil já foi buscado pelo signIn, não precisa fazer nada mais!
       return {};
 
     } catch (error) {
