@@ -6,7 +6,7 @@ import { useFinancials } from "../../context/FinancialContext";
 import * as ImagePicker from 'expo-image-picker';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { useRouter } from "expo-router";
-import { LineChart, BarChart } from "react-native-chart-kit";
+import { LineChart, BarChart, PieChart } from "react-native-chart-kit";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -108,76 +108,94 @@ export default function ProfileScreen() {
         return (names[0][0] + names[names.length - 1][0]).toUpperCase();
     };
 
-    // Chart Data Processing
-    const { netIncomeData, expensesByCategoryData, incomeVsExpensesData, monthlyIncomeData, monthlyExpensesData, savingsRateData, topExpensesData } = useMemo(() => {
+    const { cumulativeIncomeExpensesData, expensesByCategoryPieData, incomeVsExpensesData, monthlyIncomeData, monthlyExpensesData, savingsRateData } = useMemo(() => {
         const sortedTransactions = [...transactions].sort((a, b) => 
             new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime()
         );
 
-        // Net Income over Time (Last 6 months)
-        const monthlyDataMap = new Map<string, { income: number; expense: number }>();
+        const monthlyDataMap = new Map<string, { income: number; expense: number; net: number }>();
         const today = new Date();
+        const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
         for (let i = 5; i >= 0; i--) {
             const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-            const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-            monthlyDataMap.set(monthYear, { income: 0, expense: 0 });
+            const monthYearKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            monthlyDataMap.set(monthYearKey, { income: 0, expense: 0, net: 0 });
         }
 
         sortedTransactions.forEach(t => {
             const transactionDate = new Date(t.transaction_date);
-            const monthYear = `${transactionDate.getFullYear()}-${(transactionDate.getMonth() + 1).toString().padStart(2, '0')}`;
+            const monthYearKey = `${transactionDate.getFullYear()}-${(transactionDate.getMonth() + 1).toString().padStart(2, '0')}`;
             
-            if (monthlyDataMap.has(monthYear)) {
+            if (monthlyDataMap.has(monthYearKey)) {
                 if (Number(t.amount) > 0) {
-                    monthlyDataMap.get(monthYear)!.income += Number(t.amount);
+                    monthlyDataMap.get(monthYearKey)!.income += Number(t.amount);
                 } else {
-                    monthlyDataMap.get(monthYear)!.expense += Math.abs(Number(t.amount));
+                    monthlyDataMap.get(monthYearKey)!.expense += Math.abs(Number(t.amount));
                 }
+                monthlyDataMap.get(monthYearKey)!.net = monthlyDataMap.get(monthYearKey)!.income - monthlyDataMap.get(monthYearKey)!.expense;
             }
         });
 
-        const netIncomeLabels: string[] = [];
-        const netIncomeDataset: number[] = [];
+        const labelsForLineCharts: string[] = [];
         const monthlyIncomeDataset: number[] = [];
         const monthlyExpensesDataset: number[] = [];
         const savingsRateDataset: number[] = [];
-        const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+        const cumulativeIncomeDataset: number[] = [];
+        const cumulativeExpensesDataset: number[] = [];
 
-        Array.from(monthlyDataMap.keys()).sort().forEach(monthYearKey => {
+        let currentCumulativeIncome = 0;
+        let currentCumulativeExpenses = 0;
+
+        const sortedMonthlyKeys = Array.from(monthlyDataMap.keys()).sort();
+
+        sortedMonthlyKeys.forEach(monthYearKey => {
             const [, month] = monthYearKey.split('-');
             const monthIndex = parseInt(month, 10) - 1;
             const data = monthlyDataMap.get(monthYearKey)!;
-            netIncomeLabels.push(monthNames[monthIndex]);
-            netIncomeDataset.push(data.income - data.expense);
+
+            labelsForLineCharts.push(monthNames[monthIndex]);
             monthlyIncomeDataset.push(data.income);
             monthlyExpensesDataset.push(data.expense);
             
-            // Calculate savings rate (%)
             const savingsRate = data.income > 0 ? ((data.income - data.expense) / data.income) * 100 : 0;
             savingsRateDataset.push(Math.round(savingsRate));
+
+            currentCumulativeIncome += data.income;
+            currentCumulativeExpenses += data.expense;
+            cumulativeIncomeDataset.push(currentCumulativeIncome);
+            cumulativeExpensesDataset.push(currentCumulativeExpenses);
         });
 
-        const netIncomeData = {
-            labels: netIncomeLabels,
-            datasets: [{ data: netIncomeDataset.length > 0 ? netIncomeDataset : [0] }]
+        const cumulativeIncomeExpensesData = {
+            labels: labelsForLineCharts,
+            datasets: [
+                {
+                    data: cumulativeIncomeDataset.length > 0 ? cumulativeIncomeDataset : [0],
+                    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                },
+                {
+                    data: cumulativeExpensesDataset.length > 0 ? cumulativeExpensesDataset : [0],
+                    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity * 0.6})`,
+                }
+            ],
         };
 
         const monthlyIncomeData = {
-            labels: netIncomeLabels,
+            labels: labelsForLineCharts,
             datasets: [{ data: monthlyIncomeDataset.length > 0 ? monthlyIncomeDataset : [0] }]
         };
 
         const monthlyExpensesData = {
-            labels: netIncomeLabels,
+            labels: labelsForLineCharts,
             datasets: [{ data: monthlyExpensesDataset.length > 0 ? monthlyExpensesDataset : [0] }]
         };
 
         const savingsRateData = {
-            labels: netIncomeLabels,
+            labels: labelsForLineCharts,
             datasets: [{ data: savingsRateDataset.length > 0 ? savingsRateDataset : [0] }]
         };
 
-        // Expenses by Category
         const expensesByCategoryMap = new Map<string, number>();
         sortedTransactions.filter(t => Number(t.amount) < 0).forEach(t => {
             const category = categories.find(c => c.id === t.category_id);
@@ -185,27 +203,18 @@ export default function ProfileScreen() {
             expensesByCategoryMap.set(categoryName, (expensesByCategoryMap.get(categoryName) || 0) + Math.abs(Number(t.amount)));
         });
 
-        const expensesByCategoryData = {
-            labels: Array.from(expensesByCategoryMap.keys()).slice(0, 5),
-            datasets: [{ data: Array.from(expensesByCategoryMap.values()).slice(0, 5) }]
-        };
-
-        // Top 5 Largest Expenses
-        const topExpenses = sortedTransactions
-            .filter(t => Number(t.amount) < 0)
-            .map(t => ({
-                description: t.description.slice(0, 15),
-                amount: Math.abs(Number(t.amount))
-            }))
-            .sort((a, b) => b.amount - a.amount)
-            .slice(0, 5);
-
-        const topExpensesData = {
-            labels: topExpenses.map(e => e.description),
-            datasets: [{ data: topExpenses.map(e => e.amount) }]
-        };
-
-        // Income vs Expenses
+        const colors = ['#FFFFFF', '#CCCCCC', '#999999', '#666666', '#444444'];
+        const expensesByCategoryPieData = Array.from(expensesByCategoryMap.entries())
+            .sort(([, amountA], [, amountB]) => amountB - amountA)
+            .slice(0, 5)
+            .map(([name, amount], index) => ({
+                name: name,
+                population: amount,
+                color: colors[index % 5],
+                legendFontColor: "#FFFFFF",
+                legendFontSize: 12
+            }));
+            
         let totalIncome = 0;
         let totalExpenses = 0;
         sortedTransactions.forEach(t => {
@@ -221,7 +230,7 @@ export default function ProfileScreen() {
             datasets: [{ data: [totalIncome, totalExpenses] }]
         };
 
-        return { netIncomeData, expensesByCategoryData, incomeVsExpensesData, monthlyIncomeData, monthlyExpensesData, savingsRateData, topExpensesData };
+        return { cumulativeIncomeExpensesData, expensesByCategoryPieData, incomeVsExpensesData, monthlyIncomeData, monthlyExpensesData, savingsRateData };
     }, [transactions, categories]);
 
     if (profileLoading || financialsLoading || !profile) {
@@ -238,17 +247,18 @@ export default function ProfileScreen() {
         backgroundGradientFrom: "#000000",
         backgroundGradientTo: "#000000",
         color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-        strokeWidth: 2,
-        barPercentage: 0.6,
+        strokeWidth: 1.5,
+        barPercentage: 0.7,
         useShadowColorFromDataset: false,
         decimalPlaces: 0,
         propsForBackgroundLines: {
             strokeDasharray: "",
-            stroke: "rgba(255, 255, 255, 0.1)",
+            stroke: "rgba(255, 255, 255, 0.05)",
             strokeWidth: 1
         },
         propsForLabels: {
-            fill: "rgba(255, 255, 255, 0.6)"
+            fill: "rgba(255, 255, 255, 0.4)",
+            fontSize: 10
         }
     };
 
@@ -267,7 +277,7 @@ export default function ProfileScreen() {
                     <TouchableOpacity 
                         onPress={handlePickBanner} 
                         disabled={isSaving} 
-                        className="relative h-48 bg-white/5 border-b border-white/10"
+                        className="relative h-48 bg-white/5"
                     >
                         {profile?.banner_url ? (
                             <Image source={{ uri: profile.banner_url }} className="w-full h-full" resizeMode="cover" />
@@ -287,7 +297,7 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
 
                     {/* Avatar Section */}
-                    <View className="items-center -mt-14 mb-8">
+                    <View className="items-center -mt-14 mb-6">
                         <TouchableOpacity 
                             onPress={handlePickAvatar} 
                             disabled={isSaving}
@@ -317,7 +327,7 @@ export default function ProfileScreen() {
                         </Text>
                         
                         {profile?.nickname && (
-                            <Text className="text-white/60 text-base mb-2">
+                            <Text className="text-white/60 text-base mb-1">
                                 @{profile.nickname}
                             </Text>
                         )}
@@ -327,9 +337,9 @@ export default function ProfileScreen() {
                         </Text>
                     </View>
 
-                    <View className="px-8 pb-8">
+                    <View className="px-6 pb-8">
                         {/* Action Buttons */}
-                        <View className="flex-row gap-3 mb-8">
+                        <View className="flex-row gap-3 mb-6">
                             <TouchableOpacity
                                 onPress={() => router.push('/(tabs)/edit-profile')}
                                 className="flex-1 flex-row items-center justify-center py-3 border border-white/20 rounded-lg"
@@ -352,9 +362,9 @@ export default function ProfileScreen() {
 
                         {/* Bio */}
                         {profile?.bio && (
-                            <View className="mb-8">
-                                <Text className="text-white/40 text-xs mb-2">
-                                    BIO
+                            <View className="mb-12">
+                                <Text className="text-white/40 text-xs mb-2 uppercase tracking-wider">
+                                    Bio
                                 </Text>
                                 <Text className="text-white text-base leading-6">
                                     {profile.bio}
@@ -362,145 +372,130 @@ export default function ProfileScreen() {
                             </View>
                         )}
 
-                        {/* Financial Dashboard */}
                         {transactions.length > 0 && (
-                            <View className="mb-8">
-                                <Text className="text-white text-xl font-bold mb-6">Dashboard Financeiro</Text>
+                            <View>
+                                <Text className="text-white text-xl font-bold mb-8">Dashboard Financeiro</Text>
 
-                                {/* Net Income Chart */}
-                                <View className="mb-8">
-                                    <Text className="text-white/60 text-sm mb-3">Saldo Líquido (6 meses)</Text>
-                                    <View className="border border-white/10 rounded-lg overflow-hidden">
-                                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                                            <LineChart
-                                                data={netIncomeData}
-                                                width={Math.max(screenWidth - 64, netIncomeData.labels.length * 60)}
-                                                height={200}
-                                                chartConfig={chartConfig}
-                                                bezier
-                                                withInnerLines={false}
-                                                withOuterLines={false}
-                                                style={{ paddingRight: 0 }}
-                                            />
-                                        </ScrollView>
-                                    </View>
+                                {/* Cumulative Income and Expenses */}
+                                <View className="mb-12">
+                                    <Text className="text-white/40 text-xs mb-4 uppercase tracking-wider">
+                                        Acumulado (6 meses)
+                                    </Text>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                        <LineChart
+                                            data={cumulativeIncomeExpensesData}
+                                            width={Math.max(screenWidth - 48, cumulativeIncomeExpensesData.labels.length * 70)}
+                                            height={200}
+                                            chartConfig={chartConfig}
+                                            bezier
+                                            withDots={false}
+                                            withInnerLines={false}
+                                            withOuterLines={false}
+                                            withShadow={false}
+                                            style={{ marginLeft: -24 }}
+                                        />
+                                    </ScrollView>
                                 </View>
 
-                                {/* Monthly Income Trend */}
-                                <View className="mb-8">
-                                    <Text className="text-white/60 text-sm mb-3">Evolução de Receitas</Text>
-                                    <View className="border border-white/10 rounded-lg overflow-hidden">
-                                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                                            <LineChart
-                                                data={monthlyIncomeData}
-                                                width={Math.max(screenWidth - 64, monthlyIncomeData.labels.length * 60)}
-                                                height={200}
-                                                chartConfig={chartConfig}
-                                                bezier
-                                                withInnerLines={false}
-                                                withOuterLines={false}
-                                                style={{ paddingRight: 0 }}
-                                            />
-                                        </ScrollView>
-                                    </View>
+                                {/* Monthly Income */}
+                                <View className="mb-12">
+                                    <Text className="text-white/40 text-xs mb-4 uppercase tracking-wider">
+                                        Receitas Mensais
+                                    </Text>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                        <LineChart
+                                            data={monthlyIncomeData}
+                                            width={Math.max(screenWidth - 48, monthlyIncomeData.labels.length * 70)}
+                                            height={200}
+                                            chartConfig={chartConfig}
+                                            bezier
+                                            withDots={false}
+                                            withInnerLines={false}
+                                            withOuterLines={false}
+                                            withShadow={false}
+                                            style={{ marginLeft: -24 }}
+                                        />
+                                    </ScrollView>
                                 </View>
 
-                                {/* Monthly Expenses Trend */}
-                                <View className="mb-8">
-                                    <Text className="text-white/60 text-sm mb-3">Evolução de Despesas</Text>
-                                    <View className="border border-white/10 rounded-lg overflow-hidden">
-                                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                                            <LineChart
-                                                data={monthlyExpensesData}
-                                                width={Math.max(screenWidth - 64, monthlyExpensesData.labels.length * 60)}
-                                                height={200}
-                                                chartConfig={chartConfig}
-                                                bezier
-                                                withInnerLines={false}
-                                                withOuterLines={false}
-                                                style={{ paddingRight: 0 }}
-                                            />
-                                        </ScrollView>
-                                    </View>
+                                {/* Monthly Expenses */}
+                                <View className="mb-12">
+                                    <Text className="text-white/40 text-xs mb-4 uppercase tracking-wider">
+                                        Despesas Mensais
+                                    </Text>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                        <LineChart
+                                            data={monthlyExpensesData}
+                                            width={Math.max(screenWidth - 48, monthlyExpensesData.labels.length * 70)}
+                                            height={200}
+                                            chartConfig={chartConfig}
+                                            bezier
+                                            withDots={false}
+                                            withInnerLines={false}
+                                            withOuterLines={false}
+                                            withShadow={false}
+                                            style={{ marginLeft: -24 }}
+                                        />
+                                    </ScrollView>
                                 </View>
 
                                 {/* Savings Rate */}
-                                <View className="mb-8">
-                                    <Text className="text-white/60 text-sm mb-3">Taxa de Poupança (%)</Text>
-                                    <View className="border border-white/10 rounded-lg overflow-hidden">
-                                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                                            <BarChart
-                                                data={savingsRateData}
-                                                width={Math.max(screenWidth - 64, savingsRateData.labels.length * 60)}
-                                                height={200}
-                                                chartConfig={chartConfig}
-                                                withInnerLines={false}
-                                                fromZero
-                                                yAxisLabel=""
-                                                yAxisSuffix="%"
-                                                style={{ paddingRight: 0 }}
-                                            />
-                                        </ScrollView>
-                                    </View>
-                                </View>
-
-                                {/* Income vs Expenses */}
-                                <View className="mb-8">
-                                    <Text className="text-white/60 text-sm mb-3">Receita vs Despesa (Total)</Text>
-                                    <View className="border border-white/10 rounded-lg overflow-hidden">
+                                <View className="mb-12">
+                                    <Text className="text-white/40 text-xs mb-4 uppercase tracking-wider">
+                                        Taxa de Poupança
+                                    </Text>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                         <BarChart
-                                            data={incomeVsExpensesData}
-                                            width={screenWidth - 64}
+                                            data={savingsRateData}
+                                            width={Math.max(screenWidth - 48, savingsRateData.labels.length * 70)}
                                             height={200}
                                             chartConfig={chartConfig}
                                             withInnerLines={false}
                                             fromZero
                                             yAxisLabel=""
-                                            yAxisSuffix=""
+                                            yAxisSuffix="%"
+                                            style={{ marginLeft: -24 }}
                                         />
-                                    </View>
+                                    </ScrollView>
                                 </View>
 
-                                {/* Expenses by Category */}
-                                {expensesByCategoryData.labels.length > 0 && (
-                                    <View className="mb-8">
-                                        <Text className="text-white/60 text-sm mb-3">Top 5 Categorias de Despesas</Text>
-                                        <View className="border border-white/10 rounded-lg overflow-hidden">
-                                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                                                <BarChart
-                                                    data={expensesByCategoryData}
-                                                    width={Math.max(screenWidth - 64, expensesByCategoryData.labels.length * 80)}
-                                                    height={200}
-                                                    chartConfig={chartConfig}
-                                                    withInnerLines={false}
-                                                    fromZero
-                                                    yAxisLabel=""
-                                                    yAxisSuffix=""
-                                                    style={{ paddingRight: 0 }}
-                                                />
-                                            </ScrollView>
-                                        </View>
-                                    </View>
-                                )}
+                                {/* Income vs Expenses */}
+                                <View className="mb-12">
+                                    <Text className="text-white/40 text-xs mb-4 uppercase tracking-wider">
+                                        Receita vs Despesa
+                                    </Text>
+                                    <BarChart
+                                        data={incomeVsExpensesData}
+                                        width={screenWidth - 48}
+                                        height={200}
+                                        chartConfig={chartConfig}
+                                        withInnerLines={false}
+                                        fromZero
+                                        yAxisLabel=""
+                                        yAxisSuffix=""
+                                        style={{ marginLeft: -24 }}
+                                    />
+                                </View>
 
-                                {/* Top 5 Largest Expenses */}
-                                {topExpensesData.labels.length > 0 && (
-                                    <View className="mb-8">
-                                        <Text className="text-white/60 text-sm mb-3">Top 5 Maiores Despesas</Text>
-                                        <View className="border border-white/10 rounded-lg overflow-hidden">
-                                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                                                <BarChart
-                                                    data={topExpensesData}
-                                                    width={Math.max(screenWidth - 64, topExpensesData.labels.length * 80)}
-                                                    height={200}
-                                                    chartConfig={chartConfig}
-                                                    withInnerLines={false}
-                                                    fromZero
-                                                    yAxisLabel=""
-                                                    yAxisSuffix=""
-                                                    style={{ paddingRight: 0 }}
-                                                />
-                                            </ScrollView>
+                                {/* Expenses by Category Pie */}
+                                {expensesByCategoryPieData.length > 0 && (
+                                    <View className="mb-12">
+                                        <Text className="text-white/40 text-xs mb-4 uppercase tracking-wider">
+                                            Categorias de Despesas
+                                        </Text>
+                                        <View className="items-center">
+                                            <PieChart
+                                                data={expensesByCategoryPieData}
+                                                width={screenWidth - 48}
+                                                height={220}
+                                                chartConfig={chartConfig}
+                                                accessor="population"
+                                                backgroundColor="transparent"
+                                                paddingLeft="0"
+                                                center={[0, 0]}
+                                                absolute
+                                                hasLegend={true}
+                                            />
                                         </View>
                                     </View>
                                 )}
@@ -508,8 +503,8 @@ export default function ProfileScreen() {
                         )}
 
                         {transactions.length === 0 && (
-                            <View className="border border-white/20 rounded-lg p-8 mb-8 items-center">
-                                <ChartIcon size={40} />
+                            <View className="py-16 items-center">
+                                <ChartIcon size={48} />
                                 <Text className="text-white/40 text-center mt-4">
                                     Nenhuma transação para exibir
                                 </Text>
@@ -517,7 +512,7 @@ export default function ProfileScreen() {
                         )}
 
                         {/* Divider */}
-                        <View className="h-px bg-white/20 my-8" />
+                        <View className="h-px bg-white/10 my-12" />
 
                         {/* Logout Button */}
                         <TouchableOpacity
