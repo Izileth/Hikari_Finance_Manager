@@ -1,6 +1,6 @@
 import { View, Text, ActivityIndicator, ScrollView, RefreshControl, TouchableOpacity, Modal } from "react-native";
 import React, { useState } from 'react';
-import { useFinancials } from "../../context/FinancialContext";
+import { useFinancials, Transaction, Category, Account } from "../../context/FinancialContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AccountCard } from "../../components/financials/AccountCard";
 import { TransactionList } from "../../components/financials/TransactionList";
@@ -29,19 +29,32 @@ const CogIcon = ({ size = 20, color = "white" }) => (
   );
 
 export default function FinancialsScreen() {
-    const { accounts, transactions, loading, error, refetch } = useFinancials();
+    const { accounts, transactions, categories, loading, error, refetch } = useFinancials();
     const router = useRouter();
     const [transactionModalVisible, setTransactionModalVisible] = useState(false);
     const [categoryModalVisible, setCategoryModalVisible] = useState(false);
     const [accountModalVisible, setAccountModalVisible] = useState(false); // State for account modal
 
+    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+
     // Handlers for Transaction Modal
-    const handlePresentTransactionModal = () => setTransactionModalVisible(true);
+    const handlePresentTransactionModal = (transactionToEdit?: Transaction) => {
+        setSelectedTransaction(transactionToEdit || null);
+        setTransactionModalVisible(true);
+    };
     const handleSaveTransaction = () => {
         setTransactionModalVisible(false);
+        setSelectedTransaction(null); // Clear selected transaction after saving
         refetch();
     };
-    const handleCloseTransaction = () => setTransactionModalVisible(false);
+    const handleCloseTransaction = () => {
+        setTransactionModalVisible(false);
+        setSelectedTransaction(null); // Clear selected transaction on close
+    };
+
+    const handleTransactionPress = (transaction: Transaction) => {
+        handlePresentTransactionModal(transaction);
+    };
 
     // Handlers for Category Modal
     const handlePresentCategoryModal = () => setCategoryModalVisible(true);
@@ -99,7 +112,7 @@ export default function FinancialsScreen() {
                            <CogIcon />
                         </TouchableOpacity>
                     </View>
-                    <TransactionList transactions={transactions} />
+                    <TransactionList transactions={transactions} onTransactionPress={handleTransactionPress} accounts={accounts} categories={categories} />
                 </View>
             </ScrollView>
         );
@@ -120,7 +133,7 @@ export default function FinancialsScreen() {
 
                 {/* FAB to add transaction */}
                 <TouchableOpacity
-                    onPress={handlePresentTransactionModal}
+                    onPress={() => handlePresentTransactionModal()} // Call without argument to create new
                     className="absolute bottom-6 right-6 bg-zinc-50 w-16 h-16 rounded-full justify-center items-center shadow-lg"
                 >
                     <PlusIcon color="black" />
@@ -132,7 +145,11 @@ export default function FinancialsScreen() {
                     visible={transactionModalVisible}
                     onRequestClose={handleCloseTransaction}
                 >
-                    <TransactionForm onSave={handleSaveTransaction} onClose={handleCloseTransaction} />
+                    <TransactionForm 
+                        transaction={selectedTransaction} 
+                        onSave={handleSaveTransaction} 
+                        onClose={handleCloseTransaction} 
+                    />
                 </Modal>
 
                 {/* Category Manager Modal */}
@@ -156,3 +173,4 @@ export default function FinancialsScreen() {
         </SafeAreaView>
     );
 }
+

@@ -88,13 +88,18 @@ const AccountManager: React.FC<AccountManagerProps> = ({ onClose }) => {
                     initial_balance: numericBalance, 
                     currency, 
                     color, 
-                    profile_id: profile.id, 
                     is_public: isPublic, 
                     is_corporate: isCorporate 
                 };
-                await addAccount(accountData);
+                const newAccount = await addAccount(accountData);
+                if (newAccount && newAccount.length > 0) {
+                    setIsEditing(newAccount[0]); // Set newly created account for editing
+                }
             }
-            clearForm();
+            // Only clear the form if an existing item was updated, or if the intention is just to add without immediately editing
+            if (isEditing) {
+                clearForm(); 
+            }
         } catch (error: any) {
             Alert.alert('Erro ao Salvar', error.message);
         }

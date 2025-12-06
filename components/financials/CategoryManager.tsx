@@ -58,10 +58,16 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onClose }) => {
                     Alert.alert('Erro', 'Usuário não autenticado para criar categoria.');
                     return;
                 }
-                const categoryData: CategoryInsert = { name, type, profile_id: profile.id, is_public: isPublic };
-                await addCategory(categoryData);
+                const categoryData: CategoryInsert = { name, type,  is_public: isPublic };
+                const newCategory = await addCategory(categoryData);
+                if (newCategory && newCategory.length > 0) {
+                    setIsEditing(newCategory[0]); // Set newly created category for editing
+                }
             }
-            clearForm();
+            // Only clear the form if an existing item was updated, or if the intention is just to add without immediately editing
+            if (isEditing) {
+                clearForm();
+            }
         } catch (error: any) {
             Alert.alert('Erro ao Salvar', error.message);
         }

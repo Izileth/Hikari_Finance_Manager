@@ -79,10 +79,10 @@ export function AccountCard({ account }: AccountCardProps) {
     const formattedBalance = new Intl.NumberFormat('pt-BR', { 
         style: 'currency', 
         currency: account.currency || 'BRL' 
-    }).format(Number(account.initial_balance));
+    }).format(Number(account.current_balance));
 
     // Check if balance is negative
-    const isNegative = Number(account.initial_balance) < 0;
+    const isNegative = Number(account.current_balance) < 0;
 
     return (
         <View className="border border-white/20 rounded-lg p-4 mb-3 bg-black">

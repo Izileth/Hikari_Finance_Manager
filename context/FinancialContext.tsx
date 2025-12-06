@@ -13,6 +13,7 @@ export type Budget = Database['public']['Tables']['budgets']['Row'];
 export type Account = OldAccount & {
     is_public?: boolean;
     is_corporate?: boolean;
+    current_balance?: number;
 };
 
 export type AccountInsert = Omit<
