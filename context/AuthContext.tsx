@@ -1,20 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabaseUrl, supabaseAnonKey } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
+import { Session, User } from '@supabase/supabase-js';
 import { Tables } from '../lib/database.types';
-
-// Define the shape of the session and user for our context
-type Session = {
-  access_token: string;
-  refresh_token: string;
-  user: User;
-};
-
-type User = {
-  id: string;
-  email: string;
-  // Add other user properties as needed
-};
 
 type AuthData = {
   session: Session | null;
@@ -48,145 +35,107 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<Tables<'profiles'> | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (email: string, token: string) => {
+  const fetchProfile = async (user: User) => {
     try {
-      const response = await fetch(`${supabaseUrl}/rest/v1/profiles?email=eq.${email}&select=*`, {
-        headers: {
-          'apikey': supabaseAnonKey,
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      if (response.ok && data.length > 0) {
-        setProfile(data[0]);
-      } else {
-        throw new Error(data.message || 'Failed to fetch profile');
-      }
-    } catch (e) {
-      console.error('Failed to fetch profile.', e);
-      setProfile(null); // Clear profile on error
-    }
-  };
-  
-  const refreshProfile = async () => {
-    if (user && session) {
-      await fetchProfile(user.email, session.access_token);
-    }
-  };
+      if (!user) throw new Error("No user provided to fetchProfile");
 
-  // Fetch session from storage on startup
-  useEffect(() => {
-    const loadSession = async () => {
-      try {
-        const storedSession = await AsyncStorage.getItem('supabase.session');
-        if (storedSession) {
-          const parsedSession = JSON.parse(storedSession);
-          setSession(parsedSession);
-          setUser(parsedSession.user);
-          // Fetch profile after setting user
-          if (parsedSession.user) {
-            await fetchProfile(parsedSession.user.email, parsedSession.access_token);
-          }
-        }
-      } catch (e) {
-        console.error('Failed to load session.', e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadSession();
-  }, []);
-
-  const signIn = async (email: string, password: string) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
-        method: 'POST',
-        headers: {
-          'apikey': supabaseAnonKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error_description || 'Failed to sign in');
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', user.email!)
+        .single();
+        
+      if (error) {
+        // It's possible the profile isn't created yet, especially on sign-up
+        // Don't throw, just log it.
+        console.warn('Could not fetch profile:', error.message);
+        setProfile(null);
+        return;
       }
       
-      setSession(data);
-      setUser(data.user);
-      await AsyncStorage.setItem('supabase.session', JSON.stringify(data));
-      await fetchProfile(data.user.email, data.access_token);
-      return {};
-
-    } catch (error) {
-      return { error: error instanceof Error ? error : new Error(String(error)) };
-    } finally {
-      setLoading(false);
+      if (data) {
+        setProfile(data);
+      }
+    } catch (e) {
+      console.error('An unexpected error occurred while fetching profile.', e);
+      setProfile(null);
     }
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    // Fetch the initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user).finally(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
+    });
+
+    // Subscribe to auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Fetch profile when session becomes available or changes
+          await fetchProfile(session.user);
+        } else {
+          // Clear profile on sign out
+          setProfile(null);
+        }
+      }
+    );
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, []);
+
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user);
+    }
+  };
+
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    return { error: error || undefined };
   };
 
   const signUp = async (name: string, email: string, password: string) => {
-    setLoading(true);
-    try {
-      // 1. Sign up the user in Supabase Auth (inclui metadados para o trigger usar)
-      const response = await fetch(`${supabaseUrl}/auth/v1/signup`, {
-        method: 'POST',
-        headers: {
-          'apikey': supabaseAnonKey,
-          'Content-Type': 'application/json',
+    // Note: The profile is now created by a trigger in Supabase when a new auth.user is created.
+    // The trigger reads the 'name' from the metadata.
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name: name,
+          // You can add other metadata here if needed by your trigger
         },
-        body: JSON.stringify({ 
-          email, 
-          password,
-          options: {
-            data: {
-              name: name,
-              nickname: name,
-            }
-          }
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data.user) {
-        throw new Error(data.message || 'Failed to sign up');
-      }
-
-      // 2. O trigger já criou o perfil automaticamente! Agora só fazer login
-      const loginResponse = await signIn(email, password);
-      if (loginResponse.error) {
-        throw loginResponse.error;
-      }
-
-      // 3. O perfil já foi buscado pelo signIn, não precisa fazer nada mais!
-      return {};
-
-    } catch (error) {
-      return { error: error instanceof Error ? error : new Error(String(error)) };
-    } finally {
-      setLoading(false);
-    }
+      },
+    });
+    // The onAuthStateChange listener will handle fetching the profile automatically.
+    return { error: error || undefined };
   };
 
   const signOut = async () => {
-    setLoading(true);
-    try {
-      await AsyncStorage.removeItem('supabase.session');
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-    } catch (e) {
-      console.error('Failed to sign out.', e);
-    } finally {
-      setLoading(false);
-    }
+    await supabase.auth.signOut();
   };
 
   const value = {
     session,
     user,
     profile,
-    loading,
+    loading: loading,
     signIn,
     signUp,
     signOut,
@@ -199,3 +148,4 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     </AuthContext.Provider>
   );
 };
+

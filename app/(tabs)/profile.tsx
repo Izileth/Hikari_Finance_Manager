@@ -28,6 +28,12 @@ const LogoutIcon = ({ size = 20 }: { size?: number }) => (
   </Svg>
 );
 
+const FinancialsIcon = ({ size = 16 }: { size?: number }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </Svg>
+);
+
 export default function ProfileScreen() {
     const { user, signOut } = useAuth();
     const { profile, uploadAvatar, uploadBanner, loading: profileLoading } = useProfile();
@@ -173,16 +179,27 @@ export default function ProfileScreen() {
                     </View>
 
                     <View className="px-8 pb-8">
-                        {/* Edit Button */}
-                        <TouchableOpacity
-                            onPress={() => router.push('/(tabs)/edit-profile')}
-                            className="flex-row items-center justify-center py-3 mb-8 border border-white/20 rounded-lg"
-                        >
-                            <EditIcon size={16} />
-                            <Text className="text-white font-medium ml-2">
-                                Editar Perfil
-                            </Text>
-                        </TouchableOpacity>
+                        {/* Action Buttons */}
+                        <View className="flex-row items-center justify-center mb-8 space-x-4">
+                            <TouchableOpacity
+                                onPress={() => router.push('/(tabs)/edit-profile')}
+                                className="flex-1 flex-row items-center justify-center py-3 border border-white/20 rounded-lg"
+                            >
+                                <EditIcon size={16} />
+                                <Text className="text-white font-medium ml-2">
+                                    Editar Perfil
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => router.push('/(tabs)/financials')}
+                                className="flex-1 flex-row items-center justify-center py-3 border border-white/20 rounded-lg"
+                            >
+                                <FinancialsIcon size={16} />
+                                <Text className="text-white font-medium ml-2">
+                                    Minhas Finanças
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
 
                         {/* Bio */}
                         {profile?.bio && (
