@@ -12,25 +12,19 @@ interface TransactionFormProps {
 
 // SVG Icons
 const ArrowUpIcon = ({ size = 20 }: { size?: number }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path d="M12 19V5M5 12l7-7 7 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </Svg>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path d="M12 19V5M5 12l7-7 7 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
 );
 
 const ArrowDownIcon = ({ size = 20 }: { size?: number }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path d="M12 5v14M19 12l-7 7-7-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </Svg>
-);
-
-const PlusIcon = ({ size = 16 }: { size?: number }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </Svg>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path d="M12 5v14M19 12l-7 7-7-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
 );
 
 const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSave, onClose }) => {
-    const { accounts, categories, addTransaction, updateTransaction, addAccount, addCategory } = useFinancials();
+    const { accounts, categories, addTransaction, updateTransaction } = useFinancials();
     const [isEditing, setIsEditing] = useState(false);
 
     // Form state
@@ -38,16 +32,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSave, 
     const [description, setDescription] = useState('');
     const [notes, setNotes] = useState('');
     const [amount, setAmount] = useState('');
-    const [accountId, setAccountId] = useState<number | undefined>();
-    const [categoryId, setCategoryId] = useState<number | undefined>();
+    const [accountId, setAccountId] = useState<number | undefined | null>();
+    const [categoryId, setCategoryId] = useState<number | undefined | null>();
     const [transactionDate, setTransactionDate] = useState(new Date());
     const [type, setType] = useState<'income' | 'expense'>('expense');
     const [isCorporate, setIsCorporate] = useState(false);
-    const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
-    const [newCategoryName, setNewCategoryName] = useState('');
-    const [showNewAccountInput, setShowNewAccountInput] = useState(false);
-    const [newAccountName, setNewAccountName] = useState('');
-    const [newAccountType, setNewAccountType] = useState<'checking' | 'savings' | 'credit_card' | 'investment' | 'cash'>('checking');
 
     useEffect(() => {
         if (transaction) {
@@ -57,7 +46,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSave, 
             setNotes(transaction.notes || '');
             setAmount(String(Math.abs(transaction.amount as number)));
             setAccountId(transaction.account_id);
-            setCategoryId(transaction?.category_id || undefined);
+            setCategoryId(transaction?.category_id || null);
             setTransactionDate(new Date(transaction.transaction_date));
             setType(Number(transaction.amount) >= 0 ? 'income' : 'expense');
             setIsCorporate(transaction.is_corporate || false);
@@ -67,57 +56,14 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSave, 
             setDescription('');
             setNotes('');
             setAmount('');
-            setAccountId(accounts.length > 0 ? accounts[0].id : undefined);
-            setCategoryId(categories.length > 0 ? categories.find(c => c.type === 'expense')?.id : undefined);
+            setAccountId(accounts.length > 0 ? accounts[0].id : null);
+            const defaultCategory = categories.find(c => c.type === 'expense');
+            setCategoryId(defaultCategory ? defaultCategory.id : null);
             setTransactionDate(new Date());
             setType('expense');
             setIsCorporate(false);
         }
     }, [transaction, accounts, categories]);
-
-    const handleCreateCategory = async () => {
-        if (!newCategoryName.trim()) {
-            Alert.alert('Atenção', 'O nome da nova categoria não pode ser vazio');
-            return;
-        }
-        try {
-            const newCat = await addCategory({
-                name: newCategoryName,
-                type: type,
-            });
-            if (newCat && newCat.length > 0) {
-                setCategoryId(newCat[0].id);
-                setNewCategoryName('');
-                setShowNewCategoryInput(false);
-            }
-        } catch (error: any) {
-            Alert.alert('Erro ao Criar Categoria', error.message);
-        }
-    };
-
-    const handleCreateAccount = async () => {
-        if (!newAccountName.trim()) {
-            Alert.alert('Atenção', 'Nome da nova conta não pode ser vazio');
-            return;
-        }
-        try {
-            const newAcc = await addAccount({
-                name: newAccountName,
-                currency: 'BRL',
-                type: newAccountType,
-                is_corporate: false,
-                is_public: false,
-            });
-            if (newAcc && newAcc.length > 0) {
-                setAccountId(newAcc[0].id);
-                setNewAccountName('');
-                setNewAccountType('checking');
-                setShowNewAccountInput(false);
-            }
-        } catch (error: any) {
-            Alert.alert('Erro ao Criar Conta', error.message);
-        }
-    };
 
     const handleSave = async () => {
         if (!title || !amount || !accountId) {
@@ -155,7 +101,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSave, 
             Alert.alert('Erro ao Salvar', error.message);
         }
     };
-    
+
     const filteredCategories = categories.filter(c => c.type === type);
 
     return (
@@ -168,8 +114,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSave, 
 
                 {/* Type Selector */}
                 <View className="flex-row mb-8 border border-white/20 rounded-lg overflow-hidden">
-                    <TouchableOpacity 
-                        onPress={() => setType('expense')} 
+                    <TouchableOpacity
+                        onPress={() => setType('expense')}
                         className={`flex-1 py-4 flex-row items-center justify-center gap-2 ${type === 'expense' ? 'bg-white' : 'bg-transparent'}`}
                     >
                         <ArrowDownIcon size={18} />
@@ -178,8 +124,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSave, 
                         </Text>
                     </TouchableOpacity>
                     <View className="w-px bg-white/20" />
-                    <TouchableOpacity 
-                        onPress={() => setType('income')} 
+                    <TouchableOpacity
+                        onPress={() => setType('income')}
                         className={`flex-1 py-4 flex-row items-center justify-center gap-2 ${type === 'income' ? 'bg-white' : 'bg-transparent'}`}
                     >
                         <ArrowUpIcon size={18} />
@@ -217,120 +163,58 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSave, 
                         />
                     </View>
                 </View>
-                
+
                 {/* Account */}
                 <View className="mb-6">
                     <View className="flex-row justify-between items-center mb-2">
                         <Text className="text-white/60 text-sm">Conta</Text>
-                        <TouchableOpacity 
-                            onPress={() => setShowNewAccountInput(!showNewAccountInput)}
-                            className="flex-row items-center"
-                        >
-                            <PlusIcon size={14} />
-                            <Text className="text-white text-sm ml-1">
-                                {showNewAccountInput ? 'Cancelar' : 'Nova'}
-                            </Text>
-                        </TouchableOpacity>
                     </View>
-
-                    {showNewAccountInput ? (
-                        <View className="border border-white/20 rounded-lg p-4">
-                            <TextInput
-                                className="text-white px-4 py-3 text-base mb-3 border border-white/20 rounded-lg"
-                                placeholder="Nome da nova conta"
-                                placeholderTextColor="#666666"
-                                value={newAccountName}
-                                onChangeText={setNewAccountName}
-                            />
-                            
-                            <Text className="text-white/60 text-xs mb-2">Tipo de Conta</Text>
-                            <View className="border border-white/20 rounded-lg overflow-hidden mb-3">
-                                <Picker
-                                    selectedValue={newAccountType}
-                                    onValueChange={(itemValue) => setNewAccountType(itemValue)}
-                                    style={{ color: '#FFFFFF', backgroundColor: 'transparent' }}
-                                    dropdownIconColor="#FFFFFF"
-                                >
-                                    <Picker.Item label="Conta Corrente" value="checking" color={Platform.OS === 'ios' ? '#FFFFFF' : '#000000'} />
-                                    <Picker.Item label="Poupança" value="savings" color={Platform.OS === 'ios' ? '#FFFFFF' : '#000000'} />
-                                    <Picker.Item label="Cartão de Crédito" value="credit_card" color={Platform.OS === 'ios' ? '#FFFFFF' : '#000000'} />
-                                    <Picker.Item label="Investimento" value="investment" color={Platform.OS === 'ios' ? '#FFFFFF' : '#000000'} />
-                                    <Picker.Item label="Dinheiro" value="cash" color={Platform.OS === 'ios' ? '#FFFFFF' : '#000000'} />
-                                </Picker>
-                            </View>
-                            
-                            <TouchableOpacity onPress={handleCreateAccount} className="bg-white rounded-lg py-3">
-                                <Text className="text-black text-center font-bold text-base">Criar Conta</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ) : (
-                        <View className="border border-white/20 rounded-lg overflow-hidden">
-                            <Picker
-                                selectedValue={accountId}
-                                onValueChange={(itemValue) => setAccountId(itemValue)}
-                                style={{ color: '#FFFFFF', backgroundColor: 'transparent' }}
-                                dropdownIconColor="#FFFFFF"
-                            >
-                                {accounts.map(acc => (
-                                    <Picker.Item 
-                                        key={acc.id} 
-                                        label={`${acc.name}${acc.type ? ' • ' + acc.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''}`} 
-                                        value={acc.id} 
-                                        color={Platform.OS === 'ios' ? '#FFFFFF' : '#000000'} 
+                    <View className="border border-white/20 rounded-lg overflow-hidden">
+                        <Picker
+                            selectedValue={accountId}
+                            onValueChange={(itemValue) => setAccountId(itemValue)}
+                            style={{ color: '#FFFFFF', backgroundColor: 'transparent' }}
+                            dropdownIconColor="#FFFFFF"
+                            enabled={accounts.length > 0}
+                        >
+                            {accounts.length > 0 ? (
+                                accounts.map(acc => (
+                                    <Picker.Item
+                                        key={acc.id}
+                                        label={`${acc.name}${acc.type ? ' • ' + acc.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''}`}
+                                        value={acc.id}
+                                        color={Platform.OS === 'ios' ? '#FFFFFF' : '#000000'}
                                     />
-                                ))}
-                            </Picker>
-                        </View>
-                    )}
+                                ))
+                            ) : (
+                                <Picker.Item label="Nenhuma conta disponível" value={null} enabled={false} color={Platform.OS === 'ios' ? '#FFFFFF' : '#000000'} />
+                            )}
+                        </Picker>
+                    </View>
                 </View>
 
                 {/* Category */}
                 <View className="mb-6">
                     <View className="flex-row justify-between items-center mb-2">
                         <Text className="text-white/60 text-sm">Categoria</Text>
-                        <TouchableOpacity 
-                            onPress={() => setShowNewCategoryInput(!showNewCategoryInput)}
-                            className="flex-row items-center"
-                        >
-                            <PlusIcon size={14} />
-                            <Text className="text-white text-sm ml-1">
-                                {showNewCategoryInput ? 'Cancelar' : 'Nova'}
-                            </Text>
-                        </TouchableOpacity>
                     </View>
-
-                    {showNewCategoryInput ? (
-                        <View className="border border-white/20 rounded-lg p-4">
-                            <TextInput
-                                className="text-white px-4 py-3 text-base mb-3 border border-white/20 rounded-lg"
-                                placeholder="Nome da nova categoria"
-                                placeholderTextColor="#666666"
-                                value={newCategoryName}
-                                onChangeText={setNewCategoryName}
-                            />
-                            <TouchableOpacity onPress={handleCreateCategory} className="bg-white rounded-lg py-3">
-                                <Text className="text-black text-center font-bold text-base">Criar Categoria</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ) : (
-                        <View className="border border-white/20 rounded-lg overflow-hidden">
-                            <Picker
-                                selectedValue={categoryId}
-                                onValueChange={(itemValue) => setCategoryId(itemValue)}
-                                style={{ color: '#FFFFFF', backgroundColor: 'transparent' }}
-                                dropdownIconColor="#FFFFFF"
-                                enabled={filteredCategories.length > 0}
-                            >
-                                {filteredCategories.length > 0 ? (
-                                    filteredCategories.map(cat => (
-                                        <Picker.Item key={cat.id} label={cat.name} value={cat.id} color={Platform.OS === 'ios' ? '#FFFFFF' : '#000000'} />
-                                    ))
-                                ) : (
-                                    <Picker.Item label="Nenhuma categoria disponível" value={undefined} color={Platform.OS === 'ios' ? '#FFFFFF' : '#000000'} />
-                                )}
-                            </Picker>
-                        </View>
-                    )}
+                    <View className="border border-white/20 rounded-lg overflow-hidden">
+                        <Picker
+                            selectedValue={categoryId}
+                            onValueChange={(itemValue) => setCategoryId(itemValue)}
+                            style={{ color: '#FFFFFF', backgroundColor: 'transparent' }}
+                            dropdownIconColor="#FFFFFF"
+                            enabled={filteredCategories.length > 0}
+                        >
+                            {filteredCategories.length > 0 ? (
+                                filteredCategories.map(cat => (
+                                    <Picker.Item key={cat.id} label={cat.name} value={cat.id} color={Platform.OS === 'ios' ? '#FFFFFF' : '#000000'} />
+                                ))
+                            ) : (
+                                <Picker.Item label="Nenhuma categoria disponível" value={null} enabled={false} color={Platform.OS === 'ios' ? '#FFFFFF' : '#000000'} />
+                            )}
+                        </Picker>
+                    </View>
                 </View>
 
                 {/* Notes */}

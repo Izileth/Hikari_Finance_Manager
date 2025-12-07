@@ -42,6 +42,12 @@ const ChartIcon = ({ size = 20 }: { size?: number }) => (
   </Svg>
 );
 
+const CogIcon = ({ size = 16, color = "white" }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M12 20V10M12 20a8 8 0 100-16 8 8 0 000 16zM12 9a1 1 0 100-2 1 1 0 000 2z"/>
+    </Svg>
+  );
+
 export default function ProfileScreen() {
     const { user, signOut } = useAuth();
     const { profile, uploadAvatar, uploadBanner, loading: profileLoading } = useProfile();
@@ -356,6 +362,15 @@ export default function ProfileScreen() {
                                 <FinancialsIcon size={16} />
                                 <Text className="text-white font-medium ml-2">
                                     Finanças
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => router.push('/(tabs)/financial-settings')}
+                                className="flex-1 flex-row items-center justify-center py-3 border border-white/20 rounded-lg"
+                            >
+                                <CogIcon size={16} />
+                                <Text className="text-white font-medium ml-2">
+                                    Ajustes
                                 </Text>
                             </TouchableOpacity>
                         </View>
