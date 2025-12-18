@@ -59,7 +59,54 @@ export default function PostCard({ post }: { post: Post }) {
   };
 
   const renderContent = () => {
-    if (post.post_type === 'transaction_share' || post.post_type === 'achievement') {
+    if (post.post_type === 'transaction_share') {
+        const details = post.description?.split(', ').map(part => {
+            const [key, ...valueParts] = part.split(': ');
+            return { key: key.trim(), value: valueParts.join(': ').trim() };
+        });
+
+        const translations: Record<string, string> = {
+            'Type': 'Tipo',
+            'Amount': 'Valor',
+            'Category': 'Categoria',
+            'Date': 'Data',
+            'Description': 'Descrição',
+            'Expense': 'Despesa',
+            'Income': 'Receita',
+        };
+
+        const translatedTitle = 'Compartilhou uma transação';
+
+        return (
+            <View className="bg-black border border-white/10 rounded-lg p-4 my-3">
+                <Text className="text-white font-bold text-base mb-3">{translatedTitle}</Text>
+                {details?.map(({ key, value }, index) => {
+                    const translatedKey = translations[key] || key;
+                    let displayValue = (translations[value] || value);
+
+                    if (key === 'Amount') {
+                        // Handle numbers that might have thousand separators (.) and/or decimal commas (,)
+                        // e.g., "5.000,50" -> 5000.50
+                        const cleanedValue = value.replace(/\./g, '').replace(',', '.');
+                        const numericValue = parseFloat(cleanedValue);
+
+                        if (!isNaN(numericValue)) {
+                            displayValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(numericValue);
+                        }
+                    }
+
+                    return (
+                        <View key={index} className="flex-row justify-between items-center mb-1">
+                            <Text className="text-white/70 text-sm">{translatedKey}</Text>
+                            <Text className="text-white font-medium text-sm text-right">{displayValue}</Text>
+                        </View>
+                    );
+                })}
+            </View>
+        );
+    }
+    
+    if (post.post_type === 'achievement') {
         return (
             <View className="bg-white/5 border border-white/10 rounded-lg p-4 my-3">
                 <Text className="text-white font-bold text-base mb-2">{post.title}</Text>

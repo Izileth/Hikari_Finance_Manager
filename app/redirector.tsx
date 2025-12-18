@@ -1,39 +1,6 @@
 import { Redirect } from "expo-router";
-import { useAuth } from "../context/AuthContext";
-import { ActivityIndicator, StyleSheet } from "react-native";
-import { ThemedView } from "@/components/themed-view";
-import { ThemedText } from "@/components/themed-text";
 
 export default function RedirectorScreen() {
-  const { session, loading } = useAuth();
-
-  if (loading) {
-    // While authentication is loading, show a basic loading screen
-    // This will be very brief as it's meant to be triggered after the _loading.tsx splash
-    return (
-      <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FFFFFF" />
-        <ThemedText style={styles.loadingText}>Verificando autenticação...</ThemedText>
-      </ThemedView>
-    );
-  }
-
-  if (session) {
-    return <Redirect href="/(tabs)/feed" />;
-  }
-
-  return <Redirect href="/(auth)/login" />;
+  // Always redirect to the feed screen, bypassing auth check for now.
+  return <Redirect href="/(tabs)/feed" />;
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000', // Ensure it's dark
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#FFFFFF',
-  },
-});
