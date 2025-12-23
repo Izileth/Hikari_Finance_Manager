@@ -4,6 +4,7 @@ import {
   Post, 
   Comment,
   getFeedPosts as apiGetFeedPosts, 
+  getPublicFeedPosts as apiGetPublicFeedPosts,
   getPostById as apiGetPostById,
   createPost as apiCreatePost, 
   updatePost as apiUpdatePost, 
@@ -20,15 +21,18 @@ import { Database } from '@/lib/database.types';
 
 interface SocialContextType {
   posts: Post[];
+  publicPosts: Post[];
   activePost: Post | null;
   comments: Comment[];
   loading: boolean;
+  loadingPublicFeed: boolean;
   loadingActivePost: boolean;
   loadingComments: boolean;
   likingPostId: number | null;
   refreshFeed: (userId?: string) => Promise<void>;
+  refreshPublicFeed: () => Promise<void>;
   fetchPostById: (postId: number) => Promise<void>;
-  createPost: (post: { title: string; description: string; post_type?: Database['public']['Enums']['feed_post_type'], shared_data?: any }) => Promise<{ error: Error | null; }>;
+  createPost: (post: { title: string; description: string; privacy_level?: Database['public']['Enums']['post_privacy_level']; post_type?: Database['public']['Enums']['feed_post_type'], shared_data?: any }) => Promise<{ error: Error | null; }>;
   updatePost: (postId: number, updates: { title?: string; description?: string; privacy_level?: Database['public']['Enums']['post_privacy_level']; shared_data?: any }) => Promise<{ error: Error | null; }>;
   deletePost: (postId: number) => Promise<{ error: Error | null; }>;
   toggleLike: (postId: number) => Promise<void>;
@@ -42,69 +46,79 @@ const SocialContext = createContext<SocialContextType | undefined>(undefined);
 
 export function SocialProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [publicPosts, setPublicPosts] = useState<Post[]>([]);
   const [activePost, setActivePost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingPublicFeed, setLoadingPublicFeed] = useState(true);
   const [loadingActivePost, setLoadingActivePost] = useState(true);
   const [loadingComments, setLoadingComments] = useState(false);
   const [likingPostId, setLikingPostId] = useState<number | null>(null);
   const { profile } = useProfile();
 
+  const processPosts = useCallback((posts: Post[]) => {
+    if (!profile) return posts;
+    return posts.map(post => ({
+      ...post,
+      user_has_liked: post.post_likes.some(like => like.profile_id === profile.id)
+    }));
+  }, [profile]);
+
   const refreshFeed = useCallback(async (userId?: string) => {
     setLoading(true);
     const { data, error } = await apiGetFeedPosts(userId);
-    if (data && profile) {
-      const processedPosts = data.map(post => ({
-        ...post,
-        user_has_liked: post.post_likes.some(like => like.profile_id === profile.id)
-      }));
-      setPosts(processedPosts);
-    } else if (data) {
-      setPosts(data);
+    if (data) {
+      setPosts(processPosts(data));
     }
-
     if (error) {
       console.error(error);
     }
     setLoading(false);
-  }, [profile]);
+  }, [processPosts]);
+
+  const refreshPublicFeed = useCallback(async () => {
+    setLoadingPublicFeed(true);
+    const { data, error } = await apiGetPublicFeedPosts();
+    if (data) {
+      setPublicPosts(processPosts(data));
+    }
+    if (error) {
+      console.error(error);
+    }
+    setLoadingPublicFeed(false);
+  }, [processPosts]);
 
   const fetchPostById = useCallback(async (postId: number) => {
     setLoadingActivePost(true);
     const { data, error } = await apiGetPostById(postId);
-    if (data && profile) {
-        const processedPost = {
-            ...data,
-            user_has_liked: data.post_likes.some(like => like.profile_id === profile.id)
-        };
-        setActivePost(processedPost);
-    } else if (data) {
-        setActivePost(data);
+    if (data) {
+      setActivePost(processPosts([data])[0]);
     }
-
     if (error) {
         console.error(`Error fetching post ${postId}:`, error);
         setActivePost(null);
     }
     setLoadingActivePost(false);
-  }, [profile]);
+  }, [processPosts]);
 
   useEffect(() => {
     if (profile) {
       refreshFeed();
+      refreshPublicFeed();
     }
-  }, [profile, refreshFeed]);
+  }, [profile, refreshFeed, refreshPublicFeed]);
 
-  const createPost = async (post: { title: string; description: string; post_type?: Database['public']['Enums']['feed_post_type'], shared_data?: any }) => {
+  const createPost = async (post: { title: string; description: string; privacy_level?: Database['public']['Enums']['post_privacy_level']; post_type?: Database['public']['Enums']['feed_post_type'], shared_data?: any }) => {
     if (!profile) {
         const err = new Error('Você precisa estar logado para criar uma postagem.');
         Alert.alert('Erro', err.message);
         return { error: err };
     }
 
-    const { data, error } = await apiCreatePost({ ...post, profile_id: profile.id });
-    if(data) {
+    const { error } = await apiCreatePost({ ...post, profile_id: profile.id });
+    if (!error) {
         await refreshFeed();
+        await refreshPublicFeed();
     }
     
     return { error: error ? new Error(error.message) : null };
@@ -114,6 +128,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     const { error } = await apiUpdatePost(postId, updates);
     if (!error) {
       await refreshFeed();
+      await refreshPublicFeed();
     }
     return { error: error ? new Error(error.message) : null };
   };
@@ -122,6 +137,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     const { error } = await apiDeletePost(postId);
     if (!error) {
       setPosts(prevPosts => prevPosts.filter(p => p.id !== postId));
+      setPublicPosts(prevPublicPosts => prevPublicPosts.filter(p => p.id !== postId));
     }
     return { error: error ? new Error(error.message) : null };
   };
@@ -145,6 +161,9 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     setPosts(currentPosts =>
       currentPosts.map(p => (p.id === postId ? updateLikeState(p)! : p))
     );
+    setPublicPosts(currentPublicPosts =>
+      currentPublicPosts.map(p => (p.id === postId ? updateLikeState(p)! : p))
+    );
   
     // Optimistically update the active post if it's the one being liked
     if (activePost && activePost.id === postId) {
@@ -153,14 +172,12 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   
     try {
       await apiToggleLike(postId, profile.id);
-      // Optional: Refetch to ensure consistency, though optimistic UI is often enough
-      // await fetchPostById(postId); 
-      // await refreshFeed();
     } catch (error) {
       console.error("Failed to toggle like, reverting UI.", error);
       // Revert UI on error
       if (activePost && activePost.id === postId) await fetchPostById(postId);
       await refreshFeed();
+      await refreshPublicFeed();
     } finally {
       setLikingPostId(null);
     }
@@ -190,6 +207,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       const incrementCommentCount = (p: Post) => ({ ...p, comment_count: p.comment_count + 1 });
 
       setPosts(prevPosts => prevPosts.map(p => p.id === postId ? incrementCommentCount(p) : p));
+      setPublicPosts(prevPublicPosts => prevPublicPosts.map(p => p.id === postId ? incrementCommentCount(p) : p));
       if (activePost && activePost.id === postId) {
         setActivePost(incrementCommentCount(activePost));
       }
@@ -216,6 +234,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     } else if (deletedComment) {
       const decrementCommentCount = (p: Post) => ({ ...p, comment_count: Math.max(0, p.comment_count - 1) });
       setPosts(prevPosts => prevPosts.map(p => p.id === deletedComment.post_id ? decrementCommentCount(p) : p));
+      setPublicPosts(prevPublicPosts => prevPublicPosts.map(p => p.id === deletedComment.post_id ? decrementCommentCount(p) : p));
       if (activePost && activePost.id === deletedComment.post_id) {
         setActivePost(decrementCommentCount(activePost));
       }
@@ -225,13 +244,16 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   return (
     <SocialContext.Provider value={{ 
         posts,
+        publicPosts,
         activePost,
         comments,
         loading, 
+        loadingPublicFeed,
         loadingActivePost,
         loadingComments,
         likingPostId,
         refreshFeed,
+        refreshPublicFeed,
         fetchPostById,
         createPost, 
         updatePost, 

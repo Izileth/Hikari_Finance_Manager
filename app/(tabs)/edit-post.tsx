@@ -16,6 +16,7 @@ export default function EditPostScreen() {
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
+    const [privacyLevel, setPrivacyLevel] = useState<Database['public']['Enums']['post_privacy_level']>('public');
     const [loading, setLoading] = useState(false);
     const [originalPost, setOriginalPost] = useState<Database['public']['Tables']['feed_posts']['Row'] | null>(null);
     const [showFinancialAttachment, setShowFinancialAttachment] = useState(false);
@@ -28,6 +29,7 @@ export default function EditPostScreen() {
                 setOriginalPost(postToEdit);
                 setTitle(postToEdit.title || '');
                 setDescription(postToEdit.description || '');
+                setPrivacyLevel(postToEdit.privacy_level || 'public');
 
                 if (postToEdit.shared_data && typeof postToEdit.shared_data === 'object' && 'transaction_id' in postToEdit.shared_data) {
                     setSelectedTransactionId(parseInt((postToEdit.shared_data as { transaction_id: string }).transaction_id));
@@ -72,6 +74,7 @@ export default function EditPostScreen() {
             title,
             description,
             shared_data: shared_data,
+            privacy_level: privacyLevel,
         };
 
         const { error } = await updatePost(originalPost.id, updates);
@@ -217,6 +220,26 @@ export default function EditPostScreen() {
                             </Text>
                         </View>
                     )}
+
+                    {/* Privacy Level Selector */}
+                    <View className="mb-6">
+                        <Text className="text-white/60 text-sm mb-2">Visibilidade</Text>
+                        <View className="flex-row justify-between border border-white/20 rounded-lg p-1">
+                            {['public', 'followers_only', 'private'].map((level) => (
+                                <TouchableOpacity
+                                    key={level}
+                                    className={`flex-1 items-center py-2 rounded-md ${
+                                        privacyLevel === level ? 'bg-white/20' : ''
+                                    }`}
+                                    onPress={() => setPrivacyLevel(level as any)}
+                                >
+                                    <Text className="text-white font-medium capitalize">
+                                        {level === 'followers_only' ? 'Seguidores' : level}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
 
                     {/* Update Post Button */}
                     <TouchableOpacity 

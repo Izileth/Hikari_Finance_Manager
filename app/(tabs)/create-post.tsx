@@ -16,6 +16,7 @@ export default function CreatePostScreen() {
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
+    const [privacyLevel, setPrivacyLevel] = useState<Database['public']['Enums']['post_privacy_level']>('public');
     const [loading, setLoading] = useState(false);
     const [selectedTransactionId, setSelectedTransactionId] = useState<number | null>(null);
     const [showFinancialAttachment, setShowFinancialAttachment] = useState(false);
@@ -50,7 +51,7 @@ export default function CreatePostScreen() {
             }
         }
 
-        const { error } = await createPost({ title, description, post_type, shared_data });
+        const { error } = await createPost({ title, description, post_type, shared_data, privacy_level: privacyLevel });
         setLoading(false);
 
         if (error) {
@@ -210,6 +211,26 @@ export default function CreatePostScreen() {
                             )}
                         </View>
                     )}
+
+                    {/* Privacy Level Selector */}
+                    <View className="mb-6">
+                        <Text className="text-white/60 text-sm mb-2">Visibilidade</Text>
+                        <View className="flex-row justify-between border border-white/20 rounded-lg p-1">
+                            {['public', 'followers_only', 'private'].map((level) => (
+                                <TouchableOpacity
+                                    key={level}
+                                    className={`flex-1 items-center py-2 rounded-md ${
+                                        privacyLevel === level ? 'bg-white/20' : ''
+                                    }`}
+                                    onPress={() => setPrivacyLevel(level as any)}
+                                >
+                                    <Text className="text-white font-medium capitalize">
+                                        {level === 'followers_only' ? 'Seguidores' : level}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
 
                     {/* Create Post Button */}
                     <TouchableOpacity 

@@ -83,10 +83,45 @@ export const getFeedPosts = async (userId?: string): Promise<{ data: Post[] | nu
   return { data: posts, error: null };
 };
 
+export const getPublicFeedPosts = async (): Promise<{ data: Post[] | null, error: Error | null }> => {
+  const { data, error } = await supabase
+    .from('feed_posts')
+    .select(`
+      *,
+      profiles (id, name, nickname, avatar_url),
+      post_likes ( profile_id ),
+      post_comments ( count )
+    `)
+    .eq('privacy_level', 'public')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching public feed posts:', error);
+    return { data: null, error: new Error(error.message) };
+  }
+
+  const posts = data.map(post => {
+    const like_count = post.post_likes.length;
+    const comment_count = post.post_comments[0]?.count ?? 0;
+
+    return {
+      ...post,
+      profiles: Array.isArray(post.profiles) ? post.profiles[0] : post.profiles,
+      post_likes: post.post_likes,
+      like_count: like_count,
+      comment_count: comment_count,
+    };
+  });
+
+  // @ts-ignore
+  return { data: posts, error: null };
+};
+
 export const createPost = async (post: {
     profile_id: number;
     title: string;
     description: string;
+    privacy_level?: Database['public']['Enums']['post_privacy_level'];
     post_type?: Database['public']['Enums']['feed_post_type'];
     shared_data?: any;
 }) => {
