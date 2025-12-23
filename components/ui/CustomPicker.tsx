@@ -104,7 +104,7 @@ export function CustomPicker({
                 }}
             >
                 <SafeAreaView className="flex-1 bg-black">
-                    <View className="flex-1 pt-4">
+                    <View className="flex-1 pt-14">
                         {/* Modal Header */}
                         <View className="flex-row justify-between items-center px-6 mb-6">
                             <Text className="text-white font-bold text-xl">{placeholder}</Text>

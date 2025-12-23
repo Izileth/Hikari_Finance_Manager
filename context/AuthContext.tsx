@@ -63,25 +63,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    setLoading(true);
+    const fetchInitialSession = async () => {
+      try {
+        setLoading(true);
+        const { data: { session }, error } = await supabase.auth.getSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+        if (error) {
+          console.error("Error getting session:", error.message);
+        }
+
         setSession(session);
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 
-        // Only fetch profile when a user is confirmed
         if (currentUser) {
           await fetchProfile(currentUser);
         } else {
           setProfile(null);
         }
-        
-        // The loading state should be set to false after the initial session is processed.
-        // The INITIAL_SESSION event is triggered only once when the listener is mounted.
-        if (event === 'INITIAL_SESSION' || event === 'SIGNED_OUT') {
-           setLoading(false);
+      } catch (e) {
+        console.error("An unexpected error occurred during initial session fetch.", e);
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInitialSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        setSession(session);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+
+        if (currentUser) {
+          await fetchProfile(currentUser);
+        } else {
+          setProfile(null);
         }
       }
     );

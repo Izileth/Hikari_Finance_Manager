@@ -35,7 +35,7 @@ export default function PostDetailScreen() {
             refreshing={loadingActivePost} 
             onRefresh={handleFetchPost} 
             tintColor="#fff"
-            colors={['#fff']}
+            colors={['#000']}
           />
         }
       >

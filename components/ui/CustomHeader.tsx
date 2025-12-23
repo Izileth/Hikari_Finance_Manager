@@ -67,7 +67,7 @@ export default function CustomHeader() {
             <View className="flex-row  justify-between items-center px-6 pt-2">
                 {/* Left Side - Logo */}
                 <TouchableOpacity
-                    onPress={() => handleNavigation('/(tabs)/profile')}
+                    onPress={() => handleNavigation('/(tabs)/financials')}
                     activeOpacity={0.7}
                     className="mr-4"
                 >

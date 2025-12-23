@@ -10,7 +10,7 @@ export default function RedirectorScreen() {
     return <ActivityIndicator size="large" color={Colors.dark.text} />;
   }
 
-  if (!session) {
+  if (!session || !session.user) {
     return <Redirect href="/(auth)/login" />;
   }
 

@@ -237,7 +237,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ transaction, onSave, 
                 </TouchableOpacity>
 
                 {/* Cancel Button */}
-                <TouchableOpacity onPress={onClose} className="py-3">
+                <TouchableOpacity onPress={onClose} className="border border-white/20 rounded-lg py-3">
                     <Text className="text-white/60 text-center text-base">Cancelar</Text>
                 </TouchableOpacity>
             </View>
