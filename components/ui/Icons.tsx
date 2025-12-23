@@ -165,13 +165,91 @@ export const CogIcon = ({ size = 20, color = "white" }) => (
 
 
 export const FinanceLogoIcon = ({ size = 120 }: { size?: number }) => (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <Circle cx="12" cy="12" r="10" stroke="white" strokeWidth="1.5" />
-        <Path d="M12 6v12M9 9h6M8 15h8" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 1000 1000"
+        fill="none"
+    >
+        {/* Traço vertical central */}
+        <Path
+            d="
+        M470 120
+        C470 110, 530 110, 530 120
+        V520
+        C530 530, 470 530, 470 520
+        Z
+      "
+            fill="#FFFFFF"
+        />
+
+        {/* Traço horizontal central */}
+        <Path
+            d="
+        M180 400
+        C180 380, 220 370, 250 370
+        H750
+        C780 370, 820 380, 820 400
+        V440
+        H180
+        Z
+      "
+            fill="#FFFFFF"
+        />
+
+        {/* Curva inferior esquerda */}
+        <Path
+            d="
+        M430 460
+        C300 600, 260 720, 300 820
+        C340 900, 460 880, 500 820
+        L470 780
+        C430 820, 350 800, 340 740
+        C330 670, 380 580, 460 500
+        Z
+      "
+            fill="#FFFFFF"
+        />
+
+        {/* Curva inferior direita (U) */}
+        <Path
+            d="
+        M560 460
+        V720
+        C560 840, 700 860, 800 800
+        C830 780, 820 750, 800 740
+        C740 770, 640 760, 640 700
+        V460
+        Z
+      "
+            fill="#FFFFFF"
+        />
+
+        {/* Arco superior esquerdo */}
+        <Path
+            d="
+        M360 220
+        C300 260, 260 320, 250 370
+        C250 390, 290 400, 300 380
+        C330 330, 370 280, 420 250
+        Z
+      "
+            fill="#FFFFFF"
+        />
+
+        {/* Arco superior direito */}
+        <Path
+            d="
+        M640 220
+        C700 260, 740 320, 750 370
+        C750 390, 710 400, 700 380
+        C670 330, 630 280, 580 250
+        Z
+      "
+            fill="#FFFFFF"
+        />
     </Svg>
 );
-
-
 
 // SVG Icons
 export const CameraIcon = ({ size = 20 }: { size?: number }) => (
