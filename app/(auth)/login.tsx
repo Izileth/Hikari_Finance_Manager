@@ -27,11 +27,11 @@ export default function Login() {
   }
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-black"
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
         className="flex-1"
@@ -80,7 +80,7 @@ export default function Login() {
                 secureTextEntry={!showPassword}
                 className="flex-1 px-4 py-4 text-white text-base"
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 className="ml-2"
               >
@@ -89,12 +89,15 @@ export default function Login() {
             </View>
           </View>
 
-          {/* Forgot Password */}
-          <TouchableOpacity className="self-end mb-8">
+          {/* Forgot Password 
+          
+            <TouchableOpacity className="self-end mb-8">
             <Text className="text-white text-sm">
               Esqueceu a senha?
             </Text>
           </TouchableOpacity>
+
+          */}
 
           {/* Login Button */}
           <TouchableOpacity

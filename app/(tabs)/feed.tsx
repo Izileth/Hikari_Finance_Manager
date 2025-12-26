@@ -17,7 +17,7 @@ export default function FeedScreen() {
 
     if (isLoading && !data.length) {
       return (
-        <View className="flex-1 px-0 justify-center items-center">
+        <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#FFFFFF" />
           <Text className="text-white/40 text-sm mt-4">Carregando feed...</Text>
         </View>
@@ -29,11 +29,11 @@ export default function FeedScreen() {
         data={data}
         renderItem={({ item }) => <PostCard post={item} />}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 140, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           !isLoading ? (
-            <View className="flex-1 justify-center items-center py-20 px-4">
+            <View className="flex-1 justify-center items-center py-20 px-8">
               <MessageIconEmptyState size={48} />
               <Text className="text-white text-base font-semibold mt-4 mb-2">
                 Nenhuma postagem ainda
@@ -51,41 +51,47 @@ export default function FeedScreen() {
   }
 
   return (
-    <View className="flex-1 px-0 w-full bg-black">
+    <View className="flex-1 bg-black">
       <CustomHeader />
-
-      <View className="flex-1 w-full px-0">
+      
+      <View className="flex-1">
         {renderContent()}
       </View>
 
-      <View className="px-0 py-2 border-t h-28 border-black/10">
-        <View className="flex-row px-0  bg-black rounded-lg p-1">
-          <TouchableOpacity
-            className={`flex-1 py-2 px-5 rounded-md items-center ${feedType === 'personal' ? 'border-b  border-white' : ''
+      {/* Floating Tab Bar */}
+      <View className="absolute bottom-0 left-0 right-0 bg-transparent">
+        <View className="px-6 py-6">
+          <View className="flex-row bg-white/5 border border-white/20 rounded-full p-1.5">
+            <TouchableOpacity
+              className={`flex-1 py-3 px-6 rounded-full items-center ${
+                feedType === 'personal' ? 'bg-white' : ''
               }`}
-            onPress={() => setFeedType('personal')}
-            activeOpacity={0.7}
-          >
-            <Text className={`text-sm font-bold ${feedType === 'personal' ? 'text-white' : 'text-white/60'
+              onPress={() => setFeedType('personal')}
+              activeOpacity={0.7}
+            >
+              <Text className={`text-sm font-bold ${
+                feedType === 'personal' ? 'text-black' : 'text-white/60'
               }`}>
-              Pessoal
-            </Text>
-          </TouchableOpacity>
+                Pessoal
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            className={`flex-1 py-2 px-5 rounded-md items-center ${feedType === 'public' ? 'border-b border-white' : ''
+            <TouchableOpacity
+              className={`flex-1 py-3 px-6 rounded-full items-center ${
+                feedType === 'public' ? 'bg-white' : ''
               }`}
-            onPress={() => setFeedType('public')}
-            activeOpacity={0.7}
-          >
-            <Text className={`text-sm font-bold ${feedType === 'public' ? 'text-white' : 'text-white/60'
+              onPress={() => setFeedType('public')}
+              activeOpacity={0.7}
+            >
+              <Text className={`text-sm font-bold ${
+                feedType === 'public' ? 'text-black' : 'text-white/60'
               }`}>
-              Público
-            </Text>
-          </TouchableOpacity>
+                Público
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-
     </View>
   );
 }

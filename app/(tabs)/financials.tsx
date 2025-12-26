@@ -1,6 +1,6 @@
 import { View, Text, ActivityIndicator, ScrollView, RefreshControl, TouchableOpacity, Modal } from "react-native";
 import React, { useState } from 'react';
-import { useFinancials, Transaction} from "../../context/FinancialContext";
+import { useFinancials, Transaction } from "../../context/FinancialContext";
 import { AccountCard } from "../../components/financials/AccountCard";
 import { TransactionList } from "../../components/financials/TransactionList";
 import TransactionForm from "../../components/financials/TransactionForm";
@@ -66,7 +66,7 @@ export default function FinancialsScreen() {
 
         return (
             <ScrollView
-                className="flex-1 px-6"
+                className="flex-1 px-2"
                 refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} tintColor="#ffffff" />}
             >
                 {/* Accounts Section */}
@@ -74,7 +74,7 @@ export default function FinancialsScreen() {
                     <View className="flex-row justify-between items-center mb-4">
                         <Text className="text-white text-xl font-semibold">Contas</Text>
                         <TouchableOpacity onPress={handlePresentAccountModal} className="p-2">
-                           <CogIcon />
+                            <CogIcon />
                         </TouchableOpacity>
                     </View>
                     {accounts.length > 0 ? (
@@ -89,7 +89,7 @@ export default function FinancialsScreen() {
                     <View className="flex-row justify-between items-center mb-4">
                         <Text className="text-white text-xl font-semibold">Transações Recentes</Text>
                         <TouchableOpacity onPress={handlePresentCategoryModal} className="p-2">
-                           <CogIcon />
+                            <CogIcon />
                         </TouchableOpacity>
                     </View>
                     <TransactionList transactions={transactions} onTransactionPress={handleTransactionPress} accounts={accounts} categories={categories} />
@@ -100,8 +100,8 @@ export default function FinancialsScreen() {
 
     return (
         <View className="flex-1 bg-black">
-            <CustomHeader  />
-            
+            <CustomHeader />
+
             {renderContent()}
 
             {/* FAB to add transaction */}
@@ -118,10 +118,10 @@ export default function FinancialsScreen() {
                 visible={transactionModalVisible}
                 onRequestClose={handleCloseTransaction}
             >
-                <TransactionForm 
-                    transaction={selectedTransaction} 
-                    onSave={handleSaveTransaction} 
-                    onClose={handleCloseTransaction} 
+                <TransactionForm
+                    transaction={selectedTransaction}
+                    onSave={handleSaveTransaction}
+                    onClose={handleCloseTransaction}
                 />
             </Modal>
 

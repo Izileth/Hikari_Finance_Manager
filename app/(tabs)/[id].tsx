@@ -51,7 +51,7 @@ export default function PostDetailScreen() {
 
         {/* Post Content */}
         {activePost && activePost.id === postId ? (
-          <View className="px-4 py-4">
+          <View className="px-0 py-4">
             <PostCard post={activePost} isDetailView={true} />
           </View>
         ) : (

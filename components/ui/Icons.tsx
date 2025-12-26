@@ -278,5 +278,27 @@ export const FinancialsIcon = ({ size = 16 }: { size?: number }) => (
     </Svg>
 );
 
+export const CheckCircleIcon = ({ size = 20, color = "white" }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+        <Path d="M22 4L12 14.01l-3-3" />
+    </Svg>
+);
+
+export const ErrorCircleIcon = ({ size = 20, color = "white" }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <Circle cx="12" cy="12" r="10" />
+        <Path d="M12 8v4" />
+        <Path d="M12 16h.01" />
+    </Svg>
+);
+
+export const InfoCircleIcon = ({ size = 20, color = "white" }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <Circle cx="12" cy="12" r="10" />
+        <Path d="M12 16v-4" />
+        <Path d="M12 8h.01" />
+    </Svg>
+);
 
 

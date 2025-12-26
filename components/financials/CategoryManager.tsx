@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, FlatList, ScrollView, Switch, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, FlatList, ScrollView, Switch } from 'react-native';
 import { useFinancials, Category, CategoryInsert, CategoryUpdate } from '../../context/FinancialContext';
 import { useAuth } from '../../context/AuthContext';
 import { CustomPicker } from '../ui/CustomPicker';
 import Svg, { Path } from 'react-native-svg';
-
+import { useToast } from '@/context/ToastContext';
 interface CategoryManagerProps {
     onClose: () => void;
     showCloseButton?: boolean;
@@ -60,6 +60,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onClose, showCloseBut
     const [name, setName] = useState('');
     const [type, setType] = useState<'income' | 'expense'>('expense');
     const [isPublic, setIsPublic] = useState(false);
+    const { showToast } = useToast();
 
     const userCategories = useMemo(() => {
         return categories.filter(c => c.profile_id === profile?.id);
@@ -87,7 +88,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onClose, showCloseBut
 
     const handleSave = async () => {
         if (!name) {
-            Alert.alert('Atenção', 'O nome da categoria é obrigatório');
+            showToast('Atenção - O nome da categoria é obrigatório', 'error');
             return;
         }
 
@@ -110,7 +111,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onClose, showCloseBut
                 clearForm();
             }
         } catch (error: any) {
-            Alert.alert('Erro ao Salvar', error.message);
+            showToast(error.message, 'error');
         }
     };
 

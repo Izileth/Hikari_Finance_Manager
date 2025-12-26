@@ -5,7 +5,7 @@ import { useFinancials, FinancialTarget, FinancialTargetInsert, FinancialTargetU
 import { useRouter } from "expo-router";
 import { CustomPicker } from "../../components/ui/CustomPicker";
 import { BackIcon, EditIcon, TrashIcon, PlusIcon, ShareIcon, TargetIcon } from "../../components/ui/Icons";
-
+import { useToast } from "@/context/ToastContext";
 
 const targetTypes = [
     { label: "Valor (R$)", value: "currency" },
@@ -35,6 +35,8 @@ export default function EditProfileScreen() {
     const [targetType, setTargetType] = useState<'currency' | 'percentage'>('currency');
     const [timescale, setTimescale] = useState<'monthly' | 'yearly'>('monthly');
 
+    const { showToast } = useToast();
+
     useEffect(() => {
         if (profile) {
             setName(profile.name || '');
@@ -45,13 +47,13 @@ export default function EditProfileScreen() {
 
     const handleUpdateProfile = async () => {
         if (!name.trim()) {
-            Alert.alert('Atenção', 'O nome é obrigatório');
+            showToast('O nome é obrigatório', 'error');
             return;
         }
 
         const slugRegex = /^[a-z0-9_]+$/;
         if (nickname.trim() && !slugRegex.test(nickname)) {
-            Alert.alert('Apelido Inválido', 'O apelido deve conter apenas letras minúsculas, números e underlines (_)');
+            showToast('Apelido Inválido', 'error');
             return;
         }
 
@@ -63,9 +65,9 @@ export default function EditProfileScreen() {
         });
 
         if (error) {
-            Alert.alert('Erro', error.message);
+            showToast('Erro ao atualizar perfil', 'error');
         } else {
-            Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
+            showToast('Perfil atualizado com sucesso!', 'success');
         }
         setIsSaving(false);
     };
@@ -155,14 +157,14 @@ export default function EditProfileScreen() {
             <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
                 <View className="pt-16">
                     {/* Header */}
-                    <View className="flex-row items-center px-6 mb-8">
+                    <View className="flex-row items-center px-0 mb-8">
                         <TouchableOpacity onPress={() => router.back()} className="mr-4">
                             <BackIcon />
                         </TouchableOpacity>
                         <Text className="text-white text-2xl font-bold">Editar Perfil</Text>
                     </View>
 
-                    <View className="px-6 pb-8">
+                    <View className="px-2 pb-8">
                         {/* Profile Info */}
                         <View className="mb-6">
                             <Text className="text-white/60 text-sm mb-2">Nome</Text>

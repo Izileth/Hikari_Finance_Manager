@@ -24,7 +24,7 @@ export default function FinancialSettingsScreen() {
                 </View>
 
                 {/* Tab Switcher */}
-                <View className="px-4 mb-6">
+                <View className="px-2 mb-6">
                     <View className="flex-row border border-white/20 rounded-lg overflow-hidden">
                         <TouchableOpacity
                             onPress={() => setActiveTab('accounts')}
@@ -55,7 +55,7 @@ export default function FinancialSettingsScreen() {
                 </View>
                 
                 {/* Content */}
-                <View className="flex-1 px-4">
+                <View className="flex-1 px-2">
                     {activeTab === 'accounts' ? (
                         <AccountManager onClose={() => {}} showCloseButton={false} />
                     ) : (

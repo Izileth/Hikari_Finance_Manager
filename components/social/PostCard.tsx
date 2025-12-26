@@ -69,6 +69,9 @@ export default function PostCard({ post, isDetailView = false }: { post: Post, i
     });
   };
 
+
+
+
   const renderContent = () => {
     if (post.post_type === 'transaction_share' && post.shared_data && typeof post.shared_data === 'object') {
       const data = post.shared_data as { [key: string]: any };
@@ -90,8 +93,8 @@ export default function PostCard({ post, isDetailView = false }: { post: Post, i
         <>
           {post.title && <Text className="text-white font-bold text-lg mb-2">{post.title}</Text>}
           {post.description && <Text className="text-white text-base leading-6 mb-3">{post.description}</Text>}
-          
-          <View className="bg-black border-y border-white/10 rounded-lg p-4 my-2">
+
+          <View className="bg-black border-t border-white/10 rounded-lg py-4 my-2">
             {details.map(({ key, value }, index) => {
               const translatedKey = translations[key] || key;
               let displayValue: any = value;
@@ -195,9 +198,9 @@ export default function PostCard({ post, isDetailView = false }: { post: Post, i
       </View>
 
       {/* Comments Section */}
-    <View className='mt-10 '>
+      <View className='mt-10 '>
         {showComments && <CommentSection postId={post.id} />}
-    </View>
+      </View>
     </View>
   );
 }
