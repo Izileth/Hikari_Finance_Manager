@@ -23,11 +23,9 @@ interface SocialContextType {
   posts: Post[];
   publicPosts: Post[];
   activePost: Post | null;
-  comments: Comment[];
   loading: boolean;
   loadingPublicFeed: boolean;
   loadingActivePost: boolean;
-  loadingComments: boolean;
   likingPostId: number | null;
   refreshFeed: (userId?: string) => Promise<void>;
   refreshPublicFeed: () => Promise<void>;
@@ -37,9 +35,8 @@ interface SocialContextType {
   deletePost: (postId: number) => Promise<{ error: Error | null; }>;
   toggleLike: (postId: number) => Promise<void>;
   addComment: (postId: number, content: string) => Promise<void>;
-  fetchComments: (postId: number) => Promise<void>;
   updateComment: (commentId: number, content: string) => Promise<void>;
-  deleteComment: (commentId: number) => Promise<void>;
+  deleteComment: (commentId: number, postId: number) => Promise<void>;
 }
 
 const SocialContext = createContext<SocialContextType | undefined>(undefined);
@@ -48,11 +45,9 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [publicPosts, setPublicPosts] = useState<Post[]>([]);
   const [activePost, setActivePost] = useState<Post | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingPublicFeed, setLoadingPublicFeed] = useState(true);
   const [loadingActivePost, setLoadingActivePost] = useState(true);
-  const [loadingComments, setLoadingComments] = useState(false);
   const [likingPostId, setLikingPostId] = useState<number | null>(null);
   const { profile } = useProfile();
 
@@ -183,33 +178,22 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  const fetchComments = async (postId: number) => {
-    setLoadingComments(true);
-    const { data, error } = await apiGetComments(postId);
-    if (data) {
-      setComments(data);
-    }
-    if (error) {
-      console.error("Failed to fetch comments", error);
-      setComments([]);
-    }
-    setLoadingComments(false);
-  };
-
   const addComment = async (postId: number, content: string) => {
     if (!profile) return;
     
     const { data: newComment, error } = await apiAddComment(postId, profile.id, content);
 
     if (newComment) {
-      setComments(prevComments => [...prevComments, newComment as Comment]);
-      
-      const incrementCommentCount = (p: Post) => ({ ...p, comment_count: p.comment_count + 1 });
+      const addCommentToPost = (p: Post) => ({
+        ...p,
+        post_comments: [...p.post_comments, newComment as Comment],
+        comment_count: p.comment_count + 1,
+      });
 
-      setPosts(prevPosts => prevPosts.map(p => p.id === postId ? incrementCommentCount(p) : p));
-      setPublicPosts(prevPublicPosts => prevPublicPosts.map(p => p.id === postId ? incrementCommentCount(p) : p));
+      setPosts(prevPosts => prevPosts.map(p => p.id === postId ? addCommentToPost(p) : p));
+      setPublicPosts(prevPublicPosts => prevPublicPosts.map(p => p.id === postId ? addCommentToPost(p) : p));
       if (activePost && activePost.id === postId) {
-        setActivePost(incrementCommentCount(activePost));
+        setActivePost(addCommentToPost(activePost));
       }
     }
     if (error) {
@@ -218,26 +202,43 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   };
 
   const updateComment = async (commentId: number, content: string) => {
-    setComments(prev => prev.map(c => c.id === commentId ? {...c, content} : c));
+    const updateCommentInPost = (p: Post) => ({
+      ...p,
+      post_comments: p.post_comments.map(c => c.id === commentId ? { ...c, content } : c),
+    });
+
+    setPosts(prev => prev.map(p => p.post_comments.some(c => c.id === commentId) ? updateCommentInPost(p) : p));
+    setPublicPosts(prev => prev.map(p => p.post_comments.some(c => c.id === commentId) ? updateCommentInPost(p) : p));
+    if (activePost && activePost.post_comments.some(c => c.id === commentId)) {
+      setActivePost(updateCommentInPost(activePost));
+    }
+
     await apiUpdateComment(commentId, content);
   }
 
-  const deleteComment = async (commentId: number) => {
-    const originalComments = comments;
-    const deletedComment = comments.find(c => c.id === commentId);
-    setComments(prev => prev.filter(c => c.id !== commentId));
+  const deleteComment = async (commentId: number, postId: number) => {
+    const deleteCommentInPost = (p: Post) => ({
+      ...p,
+      post_comments: p.post_comments.filter(c => c.id !== commentId),
+      comment_count: p.comment_count - 1,
+    });
+
+    const originalPosts = posts;
+    const originalPublicPosts = publicPosts;
+    const originalActivePost = activePost;
+
+    setPosts(prev => prev.map(p => p.id === postId ? deleteCommentInPost(p) : p));
+    setPublicPosts(prev => prev.map(p => p.id === postId ? deleteCommentInPost(p) : p));
+    if (activePost && activePost.id === postId) {
+      setActivePost(deleteCommentInPost(activePost));
+    }
     
     const { error } = await apiDeleteComment(commentId);
     if (error) {
         Alert.alert("Erro", "Não foi possível excluir o comentário.");
-        setComments(originalComments); // Revert on failure
-    } else if (deletedComment) {
-      const decrementCommentCount = (p: Post) => ({ ...p, comment_count: Math.max(0, p.comment_count - 1) });
-      setPosts(prevPosts => prevPosts.map(p => p.id === deletedComment.post_id ? decrementCommentCount(p) : p));
-      setPublicPosts(prevPublicPosts => prevPublicPosts.map(p => p.id === deletedComment.post_id ? decrementCommentCount(p) : p));
-      if (activePost && activePost.id === deletedComment.post_id) {
-        setActivePost(decrementCommentCount(activePost));
-      }
+        setPosts(originalPosts);
+        setPublicPosts(originalPublicPosts);
+        setActivePost(originalActivePost);
     }
   }
 
@@ -246,11 +247,9 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         posts,
         publicPosts,
         activePost,
-        comments,
         loading, 
         loadingPublicFeed,
         loadingActivePost,
-        loadingComments,
         likingPostId,
         refreshFeed,
         refreshPublicFeed,
@@ -260,7 +259,6 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         deletePost,
         toggleLike,
         addComment,
-        fetchComments,
         updateComment,
         deleteComment
     }}>

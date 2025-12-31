@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, TouchableOpacity, Alert } from 'react-native';
 import { Post } from '@/lib/social';
 import { useProfile } from '@/context/ProfileContext';
 import { useSocial } from '@/context/SocialContext';
@@ -16,22 +16,9 @@ const getInitials = (name: string) => {
 
 export default function PostCard({ post, isDetailView = false }: { post: Post, isDetailView?: boolean }) {
   const { profile } = useProfile();
-  const { deletePost, toggleLike, fetchComments, likingPostId } = useSocial();
+  const { deletePost, toggleLike, likingPostId } = useSocial();
   const router = useRouter();
   const [showComments, setShowComments] = useState(isDetailView);
-  const [isFetchingComments, setIsFetchingComments] = useState(false);
-
-  useEffect(() => {
-    // If it's the detail view, comments should be visible and loaded from the start.
-    if (isDetailView) {
-      const loadComments = async () => {
-        setIsFetchingComments(true);
-        await fetchComments(post.id);
-        setIsFetchingComments(false);
-      };
-      loadComments();
-    }
-  }, [isDetailView, post.id]);
 
   const isOwner = profile?.id === post.profile_id;
 
@@ -66,27 +53,9 @@ export default function PostCard({ post, isDetailView = false }: { post: Post, i
     );
   };
 
-  const handleToggleComments = async () => {
-    if (isDetailView) {
-      // In detail view, comments are always visible, so this acts as a refresh.
-      setIsFetchingComments(true);
-      await fetchComments(post.id);
-      setIsFetchingComments(false);
-      return;
-    }
-
-    const newShowState = !showComments;
-    if (newShowState) {
-      // If we are showing comments, fetch them first, show a loader, then display.
-      setIsFetchingComments(true);
-      await fetchComments(post.id);
-      setIsFetchingComments(false);
-      setShowComments(true);
-    } else {
-      // If we are hiding, just hide them instantly.
-      setShowComments(false);
-    }
-  };
+  const handleToggleComments = () => {
+    setShowComments(prev => !prev);
+  }
 
   const handleEdit = () => {
     router.push({
@@ -225,13 +194,7 @@ export default function PostCard({ post, isDetailView = false }: { post: Post, i
 
       {/* Comments Section */}
       <View className='mt-10 '>
-        {isFetchingComments ? (
-          <View className="py-12 items-center">
-            <ActivityIndicator size="large" color="#ffffff" />
-          </View>
-        ) : (
-          showComments && <CommentSection postId={post.id} />
-        )}
+        {showComments && <CommentSection postId={post.id} comments={post.post_comments} />}
       </View>
     </View>
   );

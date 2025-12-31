@@ -5,6 +5,7 @@ import { Database } from './database.types';
 export type Post = Database['public']['Tables']['feed_posts']['Row'] & {
   profiles: Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'name' | 'nickname' | 'avatar_url'> | null;
   post_likes: { profile_id: number }[];
+  post_comments: Comment[];
   like_count: number;
   comment_count: number;
   user_has_liked?: boolean; // Will be set in the context
@@ -56,7 +57,7 @@ export const getFeedPosts = async (userId?: string): Promise<{ data: Post[] | nu
       *,
       profiles (id, name, nickname, avatar_url),
       post_likes ( profile_id ),
-      post_comments ( count )
+      post_comments ( *, profiles(id, name, nickname, avatar_url) )
     `)
     .in('profile_id', userIds)
     .order('created_at', { ascending: false });
@@ -68,12 +69,13 @@ export const getFeedPosts = async (userId?: string): Promise<{ data: Post[] | nu
 
   const posts = data.map(post => {
     const like_count = post.post_likes.length;
-    const comment_count = post.post_comments[0]?.count ?? 0;
+    const comment_count = post.post_comments.length;
 
     return {
       ...post,
       profiles: Array.isArray(post.profiles) ? post.profiles[0] : post.profiles,
       post_likes: post.post_likes,
+      post_comments: post.post_comments as Comment[],
       like_count: like_count,
       comment_count: comment_count,
     };
@@ -87,7 +89,7 @@ export const getPublicFeedPosts = async (): Promise<{ data: Post[] | null, error
   // First, fetch all public posts.
   const { data: postsData, error: postsError } = await supabase
     .from('feed_posts')
-    .select(`*, post_likes ( profile_id ), post_comments ( count )`)
+    .select(`*, post_likes ( profile_id ), post_comments ( *, profiles(id, name, nickname, avatar_url) )`)
     .eq('privacy_level', 'public')
     .order('created_at', { ascending: false });
 
@@ -119,13 +121,14 @@ export const getPublicFeedPosts = async (): Promise<{ data: Post[] | null, error
   // Manually join posts with their author's profile data.
   const posts = postsData.map(post => {
     const like_count = post.post_likes.length;
-    const comment_count = post.post_comments[0]?.count ?? 0;
+    const comment_count = post.post_comments.length;
     const profile = profilesMap.get(post.profile_id) || null;
 
     return {
       ...post,
       profiles: profile,
       post_likes: post.post_likes,
+      post_comments: post.post_comments as Comment[],
       like_count: like_count,
       comment_count: comment_count,
     };
@@ -304,7 +307,7 @@ export const getPostById = async (postId: number): Promise<{ data: Post | null, 
       *,
       profiles (id, name, nickname, avatar_url),
       post_likes ( profile_id ),
-      post_comments ( count )
+      post_comments ( *, profiles(id, name, nickname, avatar_url) )
     `)
     .eq('id', postId)
     .single();
@@ -318,12 +321,13 @@ export const getPostById = async (postId: number): Promise<{ data: Post | null, 
   }
 
   const like_count = data.post_likes.length;
-  const comment_count = data.post_comments[0]?.count ?? 0;
+  const comment_count = data.post_comments.length;
 
   const post: Post = {
     ...data,
     profiles: Array.isArray(data.profiles) ? data.profiles[0] : data.profiles,
     post_likes: data.post_likes,
+    post_comments: data.post_comments as Comment[],
     like_count: like_count,
     comment_count: comment_count,
   };

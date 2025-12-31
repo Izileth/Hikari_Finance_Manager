@@ -3,6 +3,7 @@ import React from 'react';
 import { usePathname, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
+import { BlurView } from 'expo-blur';
 import { useProfile } from '../../context/ProfileContext';
 
 // Icons
@@ -58,93 +59,100 @@ export default function CustomHeader() {
         if (names.length === 1) return names[0][0].toUpperCase();
         return (names[0][0] + names[names.length - 1][0]).toUpperCase();
     };
+    
     const handleNavigation = (href: '/(tabs)/profile' | '/(tabs)/feed' | '/(tabs)/financials') => {
         router.push(href);
     };
 
     return (
-        <SafeAreaView className="bg-black h-32">
-            <View className="flex-row  justify-between items-center px-6 pt-2">
-                {/* Left Side - Logo */}
-                <TouchableOpacity
-                    onPress={() => handleNavigation('/(tabs)/financials')}
-                    activeOpacity={0.7}
-                    className="mr-4"
-                >
-                    <FlashIcon size={24} />
-                </TouchableOpacity>
-
-                {/* Center - Navigation Icons */}
-                <View className="flex-1 flex-row items-center justify-center gap-1">
-                    {NAV_ITEMS.map((item) => {
-                        const isActive = pathname === item.href;
-                        const IconComponent = item.icon;
-
-                        return (
-                            <TouchableOpacity
-                                key={item.href}
-                                onPress={() => handleNavigation(item.href)}
-                                className={`px-3 py-2 rounded-lg transition-all ${isActive ? 'bg-white/10' : 'bg-transparent'
-                                    }`}
-                                activeOpacity={0.7}
-                            >
-                                <IconComponent size={22} active={isActive} />
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
-
-                {/* Right Side - Action Button & Profile */}
-                <View className="flex-row items-center gap-3">
+        <BlurView
+            intensity={10}
+            tint="dark"
+            style={{ height:100 }}
+        >
+            <SafeAreaView className="h-32">
+                <View className="flex-row justify-between items-center px-6 pt-2">
+                    {/* Left Side - Logo */}
                     <TouchableOpacity
-                        onPress={() => router.push('/(tabs)/create-post')}
+                        onPress={() => handleNavigation('/(tabs)/financials')}
                         activeOpacity={0.7}
-                        className="p-1"
+                        className="mr-4"
                     >
-                        <PlusSquareIcon size={22} />
+                        <FlashIcon size={24} />
                     </TouchableOpacity>
 
-                    {/* Profile Avatar */}
-                    <TouchableOpacity
-                        onPress={() => handleNavigation('/(tabs)/profile')}
-                        activeOpacity={0.7}
-                        className="relative"
-                    >
-                        {profile?.avatar_url ? (
-                            <View className="relative">
-                                <View className={`w-9 h-9 rounded-full overflow-hidden transition-all ${pathname === '/(tabs)/profile'
-                                        ? 'border-2 border-white'
-                                        : 'border border-white/20'
-                                    }`}>
-                                    <Image
-                                        source={{ uri: profile.avatar_url }}
-                                        className="w-full h-full"
-                                        resizeMode="cover"
-                                    />
-                                </View>
-                                {pathname === '/(tabs)/profile' && (
-                                    <View className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-white border-2 border-black" />
-                                )}
-                            </View>
-                        ) : (
-                            <View className="relative">
-                                <View className={`w-9 h-9 rounded-full items-center justify-center transition-all ${pathname === '/(tabs)/profile'
-                                        ? 'bg-white border-2 border-white'
-                                        : 'bg-white/10 border border-white/20'
-                                    }`}>
-                                    <Text className={`text-sm font-bold ${pathname === '/(tabs)/profile' ? 'text-black' : 'text-white'
+                    {/* Center - Navigation Icons */}
+                    <View className="flex-1 flex-row items-center justify-center gap-1">
+                        {NAV_ITEMS.map((item) => {
+                            const isActive = pathname === item.href;
+                            const IconComponent = item.icon;
+
+                            return (
+                                <TouchableOpacity
+                                    key={item.href}
+                                    onPress={() => handleNavigation(item.href)}
+                                    className={`px-3 py-2 rounded-lg transition-all ${isActive ? 'bg-white/10' : 'bg-transparent'
+                                        }`}
+                                    activeOpacity={0.7}
+                                >
+                                    <IconComponent size={22} active={isActive} />
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+
+                    {/* Right Side - Action Button & Profile */}
+                    <View className="flex-row items-center gap-3">
+                        <TouchableOpacity
+                            onPress={() => router.push('/(tabs)/create-post')}
+                            activeOpacity={0.7}
+                            className="p-1"
+                        >
+                            <PlusSquareIcon size={22} />
+                        </TouchableOpacity>
+
+                        {/* Profile Avatar */}
+                        <TouchableOpacity
+                            onPress={() => handleNavigation('/(tabs)/profile')}
+                            activeOpacity={0.7}
+                            className="relative"
+                        >
+                            {profile?.avatar_url ? (
+                                <View className="relative">
+                                    <View className={`w-9 h-9 rounded-full overflow-hidden transition-all ${pathname === '/(tabs)/profile'
+                                            ? 'border-2 border-white'
+                                            : 'border border-white/20'
                                         }`}>
-                                        {getInitials()}
-                                    </Text>
+                                        <Image
+                                            source={{ uri: profile.avatar_url }}
+                                            className="w-full h-full"
+                                            resizeMode="cover"
+                                        />
+                                    </View>
+                                    {pathname === '/(tabs)/profile' && (
+                                        <View className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-white border-2 border-black" />
+                                    )}
                                 </View>
-                                {pathname === '/(tabs)/profile' && (
-                                    <View className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-white border-2 border-black" />
-                                )}
-                            </View>
-                        )}
-                    </TouchableOpacity>
+                            ) : (
+                                <View className="relative">
+                                    <View className={`w-9 h-9 rounded-full items-center justify-center transition-all ${pathname === '/(tabs)/profile'
+                                            ? 'bg-white border-2 border-white'
+                                            : 'bg-white/10 border border-white/20'
+                                        }`}>
+                                        <Text className={`text-sm font-bold ${pathname === '/(tabs)/profile' ? 'text-black' : 'text-white'
+                                            }`}>
+                                            {getInitials()}
+                                        </Text>
+                                    </View>
+                                    {pathname === '/(tabs)/profile' && (
+                                        <View className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-white border-2 border-black" />
+                                    )}
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            </View>
-        </SafeAreaView>
+            </SafeAreaView>
+        </BlurView>
     );
 }

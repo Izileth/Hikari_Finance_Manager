@@ -13,8 +13,8 @@ const getInitials = (name: string) => {
     return (names[0][0] + names[names.length - 1][0]).toUpperCase();
 };
 
-export default function CommentSection({ postId }: { postId: number }) {
-    const { comments, addComment, updateComment, deleteComment } = useSocial();
+export default function CommentSection({ postId, comments }: { postId: number, comments: Comment[] }) {
+    const { addComment, updateComment, deleteComment } = useSocial();
     const { profile } = useProfile();
     const { showToast } = useToast();
     const [newComment, setNewComment] = useState('');
@@ -43,7 +43,7 @@ export default function CommentSection({ postId }: { postId: number }) {
                 {
                     text: "Excluir", style: "destructive", onPress: async () => {
                         try {
-                            await deleteComment(commentId);
+                            await deleteComment(commentId, postId);
                             showToast('Comentário excluído com sucesso!', 'success');
                         } catch (error: any) {
                             showToast(`Erro ao excluir comentário: ${error.message}`, 'error');
